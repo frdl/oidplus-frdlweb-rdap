@@ -90,9 +90,25 @@ $obj = OIDplusObject::parse($data->id);
 		//	}
 
 
+
+$whois_server = 'whois.viathinksoft.de:43';
+if (OIDplus::config()->getValue('individual_whois_server', '') != '') {
+	$whois_server = OIDplus::config()->getValue('individual_whois_server', '');
+}
+else if (OIDplus::config()->getValue('vts_whois', '') != '') {
+	// This config setting is set by the "Registration" plugin
+	$whois_server = OIDplus::config()->getValue('vts_whois', '');
+}
+list($whois_host, $whois_port) = explode(':',"$whois_server:43",2);
+$whois_port = intval($whois_port);
+if ($whois_port !== 43) $whois_server = 'whois.viathinksoft.de';
+
+
 //$out['ldhName'] = $obj->nodeId(false);
 $out['name'] = $obj->nodeId(true);
 $out['objectClassName'] = $ns;
+$out['port43'] = $whois_server;
+
 $out['rdapConformance'] = [
         "rdap_level_0", //https://datatracker.ietf.org/doc/html/rfc9083
       //  "oidplus_level_2",
