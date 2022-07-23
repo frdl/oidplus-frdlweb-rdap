@@ -95,8 +95,8 @@ $out['name'] = $obj->nodeId(true);
 $out['objectClassName'] = $ns;
 $out['rdapConformance'] = [
         "rdap_level_0", //https://datatracker.ietf.org/doc/html/rfc9083
-        "oidplus_level_2",
-        "frdlweb_level_2"
+      //  "oidplus_level_2",
+     //   "frdlweb_level_2"
     ];
 $out['links'] = [
           [
