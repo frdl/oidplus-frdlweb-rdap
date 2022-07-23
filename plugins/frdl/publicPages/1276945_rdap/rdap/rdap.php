@@ -101,7 +101,7 @@ else if (OIDplus::config()->getValue('vts_whois', '') != '') {
 }
 if (!empty($whois_server)) {
 	list($whois_host, $whois_port) = explode(':',"$whois_server:43",2); // Split $whois_server into host and port; set port to 43 if it does not exist
-	if ($whois_port === '43') $out['port43'] = $whois_server;
+	if ($whois_port === '43') $out['port43'] = $whois_host;
 }
 
 //$out['ldhName'] = $obj->nodeId(false);
