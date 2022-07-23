@@ -90,11 +90,11 @@ $obj = OIDplusObject::parse($data->id);
 		//	}
 
 
-$out['ldhName'] = $obj->nodeId(false);
+//$out['ldhName'] = $obj->nodeId(false);
 $out['name'] = $obj->nodeId(true);
 $out['objectClassName'] = $ns;
 $out['rdapConformance'] = [
-        "rdap_level_0",
+        "rdap_level_0", //https://datatracker.ietf.org/doc/html/rfc9083
         "oidplus_level_2",
         "frdlweb_level_2"
     ];
