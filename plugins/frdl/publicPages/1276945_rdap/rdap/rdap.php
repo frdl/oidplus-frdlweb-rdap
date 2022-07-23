@@ -99,7 +99,7 @@ else if (OIDplus::config()->getValue('vts_whois', '') != '') {
 	// This config setting is set by the "Registration" plugin
 	$whois_server = OIDplus::config()->getValue('vts_whois', '');
 }
-list($whois_host, $whois_port) = explode(':',"$whois_server:43",2);
+list($whois_host, $whois_port) = explode(':',$whois_server",2);
 $whois_port = intval($whois_port);
 if ($whois_port !== 43) $whois_server = 'whois.viathinksoft.de';
 
