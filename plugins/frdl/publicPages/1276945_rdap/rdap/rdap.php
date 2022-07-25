@@ -165,7 +165,7 @@ $out['remarks'] = [
         ],
     ];
 if($obj->isConfidential()){
- $out['remarks'][0]['type'] = "result set truncated due to authorization"; 	
+ $out['remarks'][1]['type'] = "result set truncated due to authorization"; 	
 }
 
 ___rdap_out($out);
