@@ -149,7 +149,7 @@ $out['remarks'] = [
         ],
   [
             "title"=>"Description",
-            "type"=> "remark",
+     //       "type"=> "remark",
             "description"=> [
                ($obj->isConfidential()) ? 'REDACTED FOR PRIVACY' : $data->description,
             ],
@@ -164,6 +164,9 @@ $out['remarks'] = [
 			]
         ],
     ];
+if($obj->isConfidential()){
+ $out['remarks'][0]['type'] = "result set truncated due to authorization"; 	
+}
 
 ___rdap_out($out);
 
