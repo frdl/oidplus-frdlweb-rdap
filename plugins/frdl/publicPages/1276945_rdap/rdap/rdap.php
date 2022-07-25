@@ -164,6 +164,29 @@ $out['remarks'] = [
 			]
         ],
     ];
+
+$out['notices']=[
+	 [
+         "title" => "Authentication Policy",
+         "description" =>
+         [
+           "Access to sensitive data for users with proper credentials."
+         ],
+         "links" =>
+         [
+           [
+			   //   /help query must be done by url rewrite?
+               //    without url rewrite conformance is violated !?!
+             "value" => OIDplus::webpath()."?goto=oidplus%3Aresources%24OIDplus%2Fprivacy_documentation.html",
+             "rel" => "alternate",
+             "type" => "text/html",
+             "href" => OIDplus::webpath()."?goto=oidplus%3Aresources%24OIDplus%2Fprivacy_documentation.html"
+           ]
+         ]
+       ]
+	
+];
+
 if($obj->isConfidential()){
  $out['remarks'][1]['type'] = "result set truncated due to authorization"; 	
 }
