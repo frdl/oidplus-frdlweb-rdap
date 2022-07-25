@@ -3,7 +3,8 @@
 /*
  * OIDplus 2.0 RDAP
  * Copyright 2019 - 2022 Daniel Marschall, ViaThinkSoft
- * Author                Till Wehowski, Frdlweb
+ * Authors               Daniel Marschall, ViaThinkSoft
+ *                       Till Wehowski, Frdlweb
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -135,7 +136,12 @@ $out['links'] = [
 $out['remarks'] = [
                  [
             "title"=>"Availability",
-            "type"=> "remark",
+					 /*
+             //"type"=> "remark",
+		  	 "type"=> "result set truncated due to unexplainable reasons",
+				//There are "remarks" in the examples https://datatracker.ietf.org/doc/html/rfc9083#section-10.2.1
+				//showing only the description field???
+					 */
             "description"=> [
                 sprintf("The %s %s is known.", strtoupper($ns), $n[1]),
             ],
