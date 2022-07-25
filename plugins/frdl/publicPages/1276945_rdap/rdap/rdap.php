@@ -107,7 +107,8 @@ if (!empty($whois_server)) {
 //$out['ldhName'] = $obj->nodeId(false);
 $out['name'] = $obj->nodeId(true);
 $out['objectClassName'] = $ns;
-
+$out['handle'] = $ns.':'.$n[1];
+$out['parentHandle'] = $obj->one_up()->nodeId(true);
 
 $out['rdapConformance'] = [
         "rdap_level_0", //https://datatracker.ietf.org/doc/html/rfc9083
