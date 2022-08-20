@@ -52,9 +52,11 @@ if (OIDplus::baseConfig()->getValue('DISABLE_PLUGIN_OIDplusPagePublicRdap', fals
 
 
 $rdapBaseUri = OIDplus::baseConfig()->getValue('RDAP_BASE_URI', OIDplus::webpath() );
+$rdapCacheDir = OIDplus::baseConfig()->getValue('CACHE_DIRECTORY_OIDplusPagePublicRdap', \sys_get_temp_dir().\DIRECTORY_SEPARATOR );
+$rdapCacheExpires = OIDplus::baseConfig()->getValue('CACHE_EXPIRES_OIDplusPagePublicRdap', 60  * 3 );
 
 
-originHeaders();
+
 
 // Step 0: Get request parameter
 
@@ -85,6 +87,20 @@ if(2>count($n)){
 $ns = $n[0];
 
 
+$cacheFile = $rdapCacheDir. 'oidplus-rdap-'
+	.sha1(\get_current_user()
+		  . $rdapBaseUri.__FILE__.$query
+		  .OIDplus::baseConfig()->getValue('SERVER_SECRET', sha1(__FILE__.\get_current_user()) ) 
+		 )
+	.'.'
+	.strlen( $rdapBaseUri.$query )
+	.'.php'
+	;
+
+___rdap_read_cache($cacheFile, $rdapCacheExpires);
+
+
+
 if(class_exists(\OIDplusPagePublicAltIds::class)){
  $res = OIDplus::db()->query("select * from ###alt_ids where alt = ? AND ns = ?", [$n[1], $ns]);
  $alt = $res ? $res->fetch_object() : null;
@@ -113,6 +129,7 @@ $out = [];
 
 if(null === $obj){
 	$out['error'] = 'Not found';
+	___rdap_write_cache($out, $cacheFile);
 	___rdap_out($out);
 }
 
@@ -120,6 +137,7 @@ $res = OIDplus::db()->query("select * from ###objects where id = ?", [$query]);
 $data = $res ? $res->fetch_object() : null;
 if(null === $data){
 	$out['error'] = 'Not found';
+	___rdap_write_cache($out, $cacheFile);
 	___rdap_out($out);
 }
 
@@ -271,14 +289,33 @@ $out['statuses']=[
 ];
 
  
-
+___rdap_write_cache($out, $cacheFile);
 ___rdap_out($out);
 
-//print_r('<pre>');
-//print_r($obj);
+ 
+function ___rdap_write_cache($out, $cacheFile){
+ $exp = var_export($out, true);
+ $code = <<<PHPCODE
+<?php
+ return $exp; 
+PHPCODE;
+
+	file_put_contents($cacheFile, $code);	
+	touch($cacheFile);
+}
+
+function ___rdap_read_cache($cacheFile, $rdapCacheExpires){
+ if(file_exists($cacheFile) && filemtime($cacheFile) >= time() - $rdapCacheExpires ){
+	 $out = require $cacheFile;
+	 if(is_array($out) || is_object($out)){
+	   ___rdap_out($out);
+	 }
+ }
+}
 
 
 function ___rdap_out($out){
+	originHeaders();
 	header('Content-Type: application/rdap+json');
 	echo json_encode($out);
 	exit;
