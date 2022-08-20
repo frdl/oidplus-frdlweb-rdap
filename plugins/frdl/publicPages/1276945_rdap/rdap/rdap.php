@@ -121,7 +121,8 @@ $out = [];
 
 	try {
 		$obj = OIDplusObject::findFitting($query);
-		if (!$obj) $obj = OIDplusObject::parse($query); // in case we didn't find anything fitting, we take it as it is and later use getParent() to find something else
+		if (!$obj) $obj = OIDplusObject::parse($query); 
+		// in case we didn't find anything fitting, we take it as it is and later use getParent() to find something else
 		$query = $obj->nodeId();
 	} catch (Exception $e) {
 		$obj = null;
@@ -142,13 +143,6 @@ if(null === $data){
 }
 
 $obj = OIDplusObject::parse($data->id);
-
-
-
-		//	if ($obj->isConfidential()) { // yes, we use isConfidential() instead of allowObjectView()!
-				//$out[] = 'attribute: confidential'; // DO NOT TRANSLATE!
-		//	}
-
 
 
 $whois_server = '';
@@ -223,10 +217,7 @@ $out['remarks'] = [
 				]			
 			]     
   ],
-	
-	///plugins/viathinksoft/publicPages/100_whois/whois/webwhois.php?query=oid%3A1.3.6.1.4.1.37553.8.6
-	
-	
+ 
     ];
 
 
@@ -306,7 +297,7 @@ PHPCODE;
 
 function ___rdap_read_cache($cacheFile, $rdapCacheExpires){
  if(file_exists($cacheFile) && filemtime($cacheFile) >= time() - $rdapCacheExpires ){
-	 $out = require $cacheFile;
+	 $out = include $cacheFile;
 	 if(is_array($out) || is_object($out)){
 	   ___rdap_out($out);
 	 }
