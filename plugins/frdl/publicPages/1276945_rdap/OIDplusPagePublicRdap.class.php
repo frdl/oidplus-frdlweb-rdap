@@ -21,7 +21,16 @@ if (!defined('INSIDE_OIDPLUS')) die();
 
 class OIDplusPagePublicRdap extends OIDplusPagePluginPublic {
 		
-	public function implementsFeature($id) { 
+	public function implementsFeature($id) {
+		if (strtolower($id) == '1.3.6.1.4.1.37476.2.5.2.3.2') return true; // modifyContent
 		return false;
 	}
+
+	public function modifyContent($id, &$title, &$icon, &$text) {
+		// Interface 1.3.6.1.4.1.37476.2.5.2.3.2
+
+		$text .= '<br /> <a href="'.OIDplus::webpath(__DIR__,OIDplus::PATH_RELATIVE).'rdap/rdap.php?query='.urlencode($id).'" class="gray_footer_font" target="_blank">'._L('RDAP').'</a>';	
+
+	}
+	
 }
