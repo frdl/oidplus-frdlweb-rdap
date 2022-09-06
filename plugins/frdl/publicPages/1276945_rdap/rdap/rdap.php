@@ -18,28 +18,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-//ini_set('display_errors', 'on');
 
 require_once __DIR__ . '/../../../../../includes/oidplus.inc.php';
  
-
-//https://data.registry.frdl.de/plugins/frdl/publicPages/1276945_rdap/rdap/rdap.php?query=1.3.6.1.4.1.37553.8.6&meta=source
-if(isset($_GET['meta']) && 'source' === $_GET['meta'] && 'data.registry.frdl.de' === $_SERVER['SERVER_NAME']){
-	highlight_file(__FILE__);
-	exit;
-}
-
-if(OIDplus::baseConfig()->getValue('AUTOUPDATE_PLUGIN_OIDplusPagePublicRdap', true)
-   && 'data.registry.frdl.de' !== $_SERVER['SERVER_NAME'] 
-   && filemtime(__FILE__) < time() - 86400
-   && !in_array(__FILE__, get_included_files())
-   && !isset($_GET['meta'])
-  ){
-	file_put_contents(__FILE__,
-		file_get_contents('https://data.registry.frdl.de/plugins/frdl/publicPages/1276945_rdap/rdap/rdap.php?'
-						  .'query=1.3.6.1.4.1.37553.8.6&meta=source'));
-//	return require __FILE__;
-}
 
 
 OIDplus::init(true);
@@ -49,18 +30,12 @@ if (OIDplus::baseConfig()->getValue('DISABLE_PLUGIN_OIDplusPagePublicRdap', fals
 	throw new OIDplusException(_L('This plugin was disabled by the system administrator!'));
 }
 
-
-
 $rdapBaseUri = OIDplus::baseConfig()->getValue('RDAP_BASE_URI', OIDplus::webpath() );
+$useCache = OIDplus::baseConfig()->getValue('RDAP_CACHE_ENABLED', true );
 $rdapCacheDir = OIDplus::baseConfig()->getValue('CACHE_DIRECTORY_OIDplusPagePublicRdap', \sys_get_temp_dir().\DIRECTORY_SEPARATOR );
 $rdapCacheExpires = OIDplus::baseConfig()->getValue('CACHE_EXPIRES_OIDplusPagePublicRdap', 60  * 3 );
 
-
-
-
-// Step 0: Get request parameter
-
-if (PHP_SAPI == 'cli') {
+if (\PHP_SAPI == 'cli') {
 	if ($_SERVER['argc'] != 2) {
 		echo _L('Syntax').': '.$_SERVER['argv'][0].' <query>'."\n";
 		exit(2);
@@ -74,11 +49,10 @@ if (PHP_SAPI == 'cli') {
 	$query = $_REQUEST['query'];
 }
 
-// Split input into query, authTokens and serverCommands
 $tokens = explode('$', $query);
 $query = array_shift($tokens);
 
-$query = str_replace('oid:.', 'oid:', $query); // allow leading dot
+$query = str_replace('oid:.', 'oid:', $query); 
 $n = explode(':', $query);
 if(2>count($n)){
  array_unshift($n, 'oid');	
@@ -87,7 +61,8 @@ if(2>count($n)){
 $ns = $n[0];
 
 
-$cacheFile = $rdapCacheDir. 'oidplus-rdap-'
+if(true === $useCache){
+ $cacheFile = $rdapCacheDir. 'oidplus-rdap-'
 	.sha1(\get_current_user()
 		  . $rdapBaseUri.__FILE__.$query
 		  .OIDplus::baseConfig()->getValue('SERVER_SECRET', sha1(__FILE__.\get_current_user()) ) 
@@ -97,9 +72,8 @@ $cacheFile = $rdapCacheDir. 'oidplus-rdap-'
 	.'.php'
 	;
 
-___rdap_read_cache($cacheFile, $rdapCacheExpires);
-
-
+ ___rdap_read_cache($cacheFile, $rdapCacheExpires);
+}
 
 if(class_exists(\OIDplusPagePublicAltIds::class)){
  $res = OIDplus::db()->query("select * from ###alt_ids where alt = ? AND ns = ?", [$n[1], $ns]);
@@ -113,7 +87,7 @@ if(class_exists(\OIDplusPagePublicAltIds::class)){
    }
    $ns = $n[0];
  }
-}//AltIds Plugin
+}
 
 
 $out = [];
@@ -121,8 +95,7 @@ $out = [];
 
 	try {
 		$obj = OIDplusObject::findFitting($query);
-		if (!$obj) $obj = OIDplusObject::parse($query); 
-		// in case we didn't find anything fitting, we take it as it is and later use getParent() to find something else
+		if (!$obj) $obj = OIDplusObject::parse($query);  
 		$query = $obj->nodeId();
 	} catch (Exception $e) {
 		$obj = null;
@@ -130,7 +103,9 @@ $out = [];
 
 if(null === $obj){
 	$out['error'] = 'Not found';
-	___rdap_write_cache($out, $cacheFile);
+	if(true === $useCache){
+    	___rdap_write_cache($out, $cacheFile);
+	}
 	___rdap_out($out);
 }
 
@@ -138,7 +113,9 @@ $res = OIDplus::db()->query("select * from ###objects where id = ?", [$query]);
 $data = $res ? $res->fetch_object() : null;
 if(null === $data){
 	$out['error'] = 'Not found';
-	___rdap_write_cache($out, $cacheFile);
+	if(true === $useCache){
+	    ___rdap_write_cache($out, $cacheFile); 
+	}
 	___rdap_out($out);
 }
 
@@ -150,31 +127,32 @@ if (OIDplus::config()->getValue('individual_whois_server', '') != '') {
 	$whois_server = OIDplus::config()->getValue('individual_whois_server', '');
 }
 else if (OIDplus::config()->getValue('vts_whois', '') != '') {
-	// This config setting is set by the "Registration" plugin
 	$whois_server = OIDplus::config()->getValue('vts_whois', '');
 }
 if (!empty($whois_server)) {
-	list($whois_host, $whois_port) = explode(':',"$whois_server:43"); // Split $whois_server into host and port; set port to 43 if it does not exist
+	list($whois_host, $whois_port) = explode(':',"$whois_server:43");  
 	if ($whois_port === '43') $out['port43'] = $whois_host;
 }
 
-//$out['ldhName'] = $obj->nodeId(false);
+
+    $parentHandle=$obj->one_up();
+
+ 
 $out['name'] = $obj->nodeId(true);
 $out['objectClassName'] = $ns;
 $out['handle'] = $ns.':'.$n[1];
-$out['parentHandle'] = $obj->one_up()->nodeId(true);
+$out['parentHandle'] =   (null !== $parentHandle && is_callable([$parentHandle, 'nodeId']) )
+	              ? $obj->one_up()->nodeId(true)
+	              : null;
 
 $out['rdapConformance'] = [
         "rdap_level_0", //https://datatracker.ietf.org/doc/html/rfc9083
-      //  "oidplus_level_2",
-     //   "frdlweb_level_2"
-    ];
+];
 $out['links'] = [
           [
             "href"=> 'https://'.$_SERVER['SERVER_NAME'].$_SERVER['REQUEST_URI'],
             "type"=> "application/rdap+json",
-            "title"=> sprintf("Information about the %s %s", $ns, $n[1]),
-         //   "value"=> 'https://'.$_SERVER['SERVER_NAME'].$_SERVER['REQUEST_URI'],
+            "title"=> sprintf("Information about the %s %s", $ns, $n[1]), 
 			"value"=>  $rdapBaseUri.$ns.'/'.$n[1],  
             "rel"=> "self"
          ],
@@ -186,24 +164,17 @@ $out['links'] = [
             "rel"=> "alternate"
          ]
 	
-    ];//OIDplus::webpath()."?goto=oid:".$this->raHasFreeWeid($email, true)
+    ];
 $out['remarks'] = [
                  [
             "title"=>"Availability",
-					 /*
-             //"type"=> "remark",
-		  	 "type"=> "result set truncated due to unexplainable reasons",
-				//There are "remarks" in the examples https://datatracker.ietf.org/doc/html/rfc9083#section-10.2.1
-				//showing only the description field???
-					 */
             "description"=> [
                 sprintf("The %s %s is known.", strtoupper($ns), $n[1]),
             ],
             "links"=> []
         ],
   [
-            "title"=>"Description",
-     //       "type"=> "remark",
+            "title"=>"Description", 
             "description"=> [
                ($obj->isConfidential()) ? 'REDACTED FOR PRIVACY' : $data->description,
             ],
@@ -257,9 +228,6 @@ $out['notices']=[
          "links" =>
          [
            [
-			   //   /help query must be done by url rewrite?
-               //    without url rewrite conformance is violated !?!
-            // "value" => OIDplus::webpath()."?goto=oidplus%3Aresources%24OIDplus%2Fprivacy_documentation.html",
 			 "value" => $rdapBaseUri."help",  
              "rel" => "alternate",
              "type" => "text/html",
@@ -275,12 +243,13 @@ if($obj->isConfidential()){
 }
 
 $out['statuses']=[
-	'active',
-	//'locked',	
+	'active', 
 ];
 
  
-___rdap_write_cache($out, $cacheFile);
+if(true === $useCache){
+  ___rdap_write_cache($out, $cacheFile);
+}
 ___rdap_out($out);
 
  
