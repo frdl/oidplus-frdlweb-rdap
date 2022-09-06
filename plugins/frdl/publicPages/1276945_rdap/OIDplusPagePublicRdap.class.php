@@ -27,10 +27,8 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic {
 	}
 
 	public function modifyContent($id, &$title, &$icon, &$text) {
-		// Interface 1.3.6.1.4.1.37476.2.5.2.3.2
-
-		$text .= '<br /> <a href="'.OIDplus::webpath(__DIR__,OIDplus::PATH_RELATIVE).'rdap/rdap.php?query='.urlencode($id).'" class="gray_footer_font" target="_blank">'._L('RDAP').'</a>';	
-
+	    $text .= '<br /> <a href="'.OIDplus::webpath(__DIR__,OIDplus::PATH_RELATIVE)
+			.'rdap/rdap.php?query='.urlencode($id).'" class="gray_footer_font" target="_blank">'._L('RDAP').'</a>';	
 	}
 	
 }
