@@ -73,6 +73,8 @@ if(true === $useCache){
 	;
 
  ___rdap_read_cache($cacheFile, $rdapCacheExpires);
+}else{
+  $cacheFile = false;	
 }
 
 if(class_exists(\OIDplusPagePublicAltIds::class)){
@@ -254,6 +256,9 @@ ___rdap_out($out);
 
  
 function ___rdap_write_cache($out, $cacheFile){
+ if(!is_string($cacheFile)){
+   return;	 
+ }
  $exp = var_export($out, true);
  $code = <<<PHPCODE
 <?php
@@ -265,7 +270,7 @@ PHPCODE;
 }
 
 function ___rdap_read_cache($cacheFile, $rdapCacheExpires){
- if(file_exists($cacheFile) && filemtime($cacheFile) >= time() - $rdapCacheExpires ){
+ if(is_string($cacheFile) && file_exists($cacheFile) && filemtime($cacheFile) >= time() - $rdapCacheExpires ){
 	 $out = include $cacheFile;
 	 if(is_array($out) || is_object($out)){
 	   ___rdap_out($out);
