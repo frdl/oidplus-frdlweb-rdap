@@ -217,25 +217,7 @@ $out['remarks'] = [
   $oidIPUrlJSON =  OIDplus::webpath().'plugins/viathinksoft/publicPages/100_whois/whois/webwhois.php?query='.urlencode($query).'$format=json';
   $oidIPJSON = file_get_contents($oidIPUrlJSON);
   if(false !== $oidIPJSON){
-     $out['oidplus_oidip'] = json_decode($oidIPJSON);	  
-	  
-        if(isset($out['oidplus_oidip']->oidip->objectSection->created)){
-    	 $out['oidplus_oidip']->oidip->objectSection->created
-			 = implode('T', explode(' ', $out['oidplus_oidip']->oidip->objectSection->created, 2)).'Z';								
-	}
-	if(isset($out['oidplus_oidip']->oidip->objectSection->updated)){
-    	 $out['oidplus_oidip']->oidip->objectSection->updated
-			 = implode('T', explode(' ',  $out['oidplus_oidip']->oidip->objectSection->updated, 2)).'Z';								
-	}
-	  
-	if(isset($out['oidplus_oidip']->oidip->raSection->created)){
-    	 $out['oidplus_oidip']->oidip->raSection->created
-			 = implode('T', explode(' ', $out['oidplus_oidip']->oidip->raSection->created, 2)).'Z';								
-	}
-	if(isset($out['oidplus_oidip']->oidip->raSection->updated)){
-    	 $out['oidplus_oidip']->oidip->raSection->updated
-			 = implode('T', explode(' ',  $out['oidplus_oidip']->oidip->raSection->updated, 2)).'Z';								
-	}	  	  
+     $out['oidplus_oidip'] = json_decode($oidIPJSON);
   }
 
 $out['notices']=[
