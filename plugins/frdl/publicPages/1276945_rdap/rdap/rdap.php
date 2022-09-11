@@ -193,45 +193,44 @@ $out['remarks'] = [
  
     ];
 
+
 if (!is_null(OIDplus::getPluginByOid("1.3.6.1.4.1.37476.2.5.2.4.1.100"))) { // OIDplusPagePublicWhois
 	$oidIPUrl =  OIDplus::webpath().'plugins/viathinksoft/publicPages/100_whois/whois/webwhois.php?query='.urlencode($query);
-	$oidIP = @file_get_contents($oidIPUrl);
-	$tmp = array();
-	$tmp["title"] = "OID-IP Result";
-	if($oidIP !== false)            
-            $tmp["description"] = [
-                $oidIP,
-            ];
-	$tmp["links"] = [	    
-				[          
-					"href"=> $oidIPUrl,           
-					"type"=> "text/plain",           
-					"title"=> sprintf("OIDIP Result for the %s %s (Plaintext)", $ns, $n[1]),          
-					"value"=> $oidIPUrl,
-					"rel"=> "alternate"      
-				],			
-				[          
-					"href"=> "$oidIPUrl\$format=json",         
-					"type"=> "application/json",           
-					"title"=> sprintf("OIDIP Result for the %s %s (JSON)", $ns, $n[1]),          
-					"value"=> "$oidIPUrl\$format=json",
-					"rel"=> "alternate"      
-				],			
-				[          
-					"href"=> "$oidIPUrl\$format=xml",       
-					"type"=> "application/xml",           
-					"title"=> sprintf("OIDIP Result for the %s %s (XML)", $ns, $n[1]),          
-					"value"=> "$oidIPUrl\$format=xml",
-					"rel"=> "alternate"      
-				]			
-			];
-	$out['remarks'][]= $tmp;
 
-	$oidIPUrlJSON =  OIDplus::webpath().'plugins/viathinksoft/publicPages/100_whois/whois/webwhois.php?query='.urlencode($query).'$format=json';
-	$oidIPJSON = @file_get_contents($oidIPUrlJSON);
-	if($oidIPJSON !== false){
-		$out['oidplus_oidip'] = json_decode($oidIPJSON);
-	}
+	$oidip_generator = new OIDplusOIDIP();
+
+	list($oidIP, $dummy_content_type) = $oidip_generator->oidipQuery($query);
+
+	$out['remarks'][] = [
+		"title" => "OID-IP Result",
+		"description" => $oidIP,
+		"links" => [
+				[
+					"href"=> $oidIPUrl,
+					"type"=> "text/plain",
+					"title"=> sprintf("OIDIP Result for the %s %s (Plaintext)", $ns, $n[1]),
+					"value"=> $oidIPUrl,
+					"rel"=> "alternate"
+				],
+				[
+					"href"=> "$oidIPUrl\$format=json",
+					"type"=> "application/json",
+					"title"=> sprintf("OIDIP Result for the %s %s (JSON)", $ns, $n[1]),
+					"value"=> "$oidIPUrl\$format=json",
+					"rel"=> "alternate"
+				],
+				[
+					"href"=> "$oidIPUrl\$format=xml",
+					"type"=> "application/xml",
+					"title"=> sprintf("OIDIP Result for the %s %s (XML)", $ns, $n[1]),
+					"value"=> "$oidIPUrl\$format=xml",
+					"rel"=> "alternate"
+				]
+			]
+		];
+
+	list($oidIPJSON, $dummy_content_type) = $oidip_generator->oidipQuery("$query\$format=json");
+	$out['oidplus_oidip'] = json_decode($oidIPJSON);
 }
 
 $out['notices']=[
