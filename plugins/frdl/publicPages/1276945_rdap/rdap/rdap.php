@@ -77,7 +77,7 @@ if(true === $useCache){
   $cacheFile = false;	
 }
 
-if(class_exists(\OIDplusPagePublicAltIds::class)){
+if (!is_null(OIDplus::getPluginByOid("1.3.6.1.4.1.37553.8.1.8.8.53354196964.641310544"))) { // OIDplusPagePublicAltIds
  $res = OIDplus::db()->query("select * from ###alt_ids where alt = ? AND ns = ?", [$n[1], $ns]);
  $alt = $res ? $res->fetch_object() : null;
  if(null !== $alt){
@@ -193,7 +193,7 @@ $out['remarks'] = [
  
     ];
 
-
+if (!is_null(OIDplus::getPluginByOid("1.3.6.1.4.1.37476.2.5.2.4.1.100"))) { // OIDplusPagePublicWhois
   $oidIPUrl =  OIDplus::webpath().'plugins/viathinksoft/publicPages/100_whois/whois/webwhois.php?query='.urlencode($query);
   $oidIP = file_get_contents($oidIPUrl);
   if(false !== $oidIP){
@@ -219,6 +219,7 @@ $out['remarks'] = [
   if(false !== $oidIPJSON){
      $out['oidplus_oidip'] = json_decode($oidIPJSON);
   }
+}
 
 $out['notices']=[
 	 [
