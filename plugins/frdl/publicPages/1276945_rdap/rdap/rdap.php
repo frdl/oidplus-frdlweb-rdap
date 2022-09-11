@@ -194,15 +194,15 @@ $out['remarks'] = [
     ];
 
 if (!is_null(OIDplus::getPluginByOid("1.3.6.1.4.1.37476.2.5.2.4.1.100"))) { // OIDplusPagePublicWhois
-  $oidIPUrl =  OIDplus::webpath().'plugins/viathinksoft/publicPages/100_whois/whois/webwhois.php?query='.urlencode($query);
-  $oidIP = file_get_contents($oidIPUrl);
-  if(false !== $oidIP){
- $out['remarks'][]= [
-            "title"=>"OIDIP Result", 
-            "description"=> [
+	$oidIPUrl =  OIDplus::webpath().'plugins/viathinksoft/publicPages/100_whois/whois/webwhois.php?query='.urlencode($query);
+	$oidIP = @file_get_contents($oidIPUrl);
+	$tmp = array();
+	$tmp["title"] = "OIDIP Result";
+	if($oidIP !== false)            
+            $tmp["description"] = [
                 $oidIP,
-            ],
-            "links"=> [	    
+            ];
+	$tmp["links"] = [	    
 				[          
 					"href"=> $oidIPUrl,           
 					"type"=> "text/plain",           
@@ -210,15 +210,14 @@ if (!is_null(OIDplus::getPluginByOid("1.3.6.1.4.1.37476.2.5.2.4.1.100"))) { // O
 					"value"=> $oidIPUrl,
 					"rel"=> "alternate"      
 				]			
-			]     
-  ];	  
-  }
+			];
+	$out['remarks'][]= $tmp;
 
-  $oidIPUrlJSON =  OIDplus::webpath().'plugins/viathinksoft/publicPages/100_whois/whois/webwhois.php?query='.urlencode($query).'$format=json';
-  $oidIPJSON = file_get_contents($oidIPUrlJSON);
-  if(false !== $oidIPJSON){
-     $out['oidplus_oidip'] = json_decode($oidIPJSON);
-  }
+	$oidIPUrlJSON =  OIDplus::webpath().'plugins/viathinksoft/publicPages/100_whois/whois/webwhois.php?query='.urlencode($query).'$format=json';
+	$oidIPJSON = @file_get_contents($oidIPUrlJSON);
+	if($oidIPJSON !== false){
+		$out['oidplus_oidip'] = json_decode($oidIPJSON);
+	}
 }
 
 $out['notices']=[
