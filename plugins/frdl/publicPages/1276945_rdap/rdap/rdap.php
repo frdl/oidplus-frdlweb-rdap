@@ -197,7 +197,7 @@ if (!is_null(OIDplus::getPluginByOid("1.3.6.1.4.1.37476.2.5.2.4.1.100"))) { // O
 	$oidIPUrl =  OIDplus::webpath().'plugins/viathinksoft/publicPages/100_whois/whois/webwhois.php?query='.urlencode($query);
 	$oidIP = @file_get_contents($oidIPUrl);
 	$tmp = array();
-	$tmp["title"] = "OIDIP Result";
+	$tmp["title"] = "OID-IP Result";
 	if($oidIP !== false)            
             $tmp["description"] = [
                 $oidIP,
@@ -206,8 +206,22 @@ if (!is_null(OIDplus::getPluginByOid("1.3.6.1.4.1.37476.2.5.2.4.1.100"))) { // O
 				[          
 					"href"=> $oidIPUrl,           
 					"type"=> "text/plain",           
-					"title"=> sprintf("OIDIP Result for the %s %s", $ns, $n[1]),          
+					"title"=> sprintf("OIDIP Result for the %s %s (Plaintext)", $ns, $n[1]),          
 					"value"=> $oidIPUrl,
+					"rel"=> "alternate"      
+				],			
+				[          
+					"href"=> "$oidIPUrl\$format=json",         
+					"type"=> "application/json",           
+					"title"=> sprintf("OIDIP Result for the %s %s (JSON)", $ns, $n[1]),          
+					"value"=> "$oidIPUrl\$format=json",
+					"rel"=> "alternate"      
+				],			
+				[          
+					"href"=> "$oidIPUrl\$format=xml",       
+					"type"=> "application/xml",           
+					"title"=> sprintf("OIDIP Result for the %s %s (XML)", $ns, $n[1]),          
+					"value"=> "$oidIPUrl\$format=xml",
 					"rel"=> "alternate"      
 				]			
 			];
