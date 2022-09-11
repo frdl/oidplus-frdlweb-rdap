@@ -31,7 +31,7 @@ if (OIDplus::baseConfig()->getValue('DISABLE_PLUGIN_OIDplusPagePublicRdap', fals
 }
 
 $rdapBaseUri = OIDplus::baseConfig()->getValue('RDAP_BASE_URI', OIDplus::webpath() );
-$useCache = OIDplus::baseConfig()->getValue('RDAP_CACHE_ENABLED', true );
+$useCache = OIDplus::baseConfig()->getValue('RDAP_CACHE_ENABLED', false );
 $rdapCacheDir = OIDplus::baseConfig()->getValue('CACHE_DIRECTORY_OIDplusPagePublicRdap', \sys_get_temp_dir().\DIRECTORY_SEPARATOR );
 $rdapCacheExpires = OIDplus::baseConfig()->getValue('CACHE_EXPIRES_OIDplusPagePublicRdap', 60  * 3 );
 
