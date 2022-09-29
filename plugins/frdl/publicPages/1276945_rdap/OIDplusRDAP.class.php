@@ -62,15 +62,10 @@ class OIDplusRDAP {
 		}
 
 		if (!is_null(OIDplus::getPluginByOid("1.3.6.1.4.1.37553.8.1.8.8.53354196964.641310544"))) { // OIDplusPagePublicAltIds
-			$res = OIDplus::db()->query("select * from ###alt_ids where alt = ? AND ns = ?", [$n[1], $ns]);
-			$alt = $res ? $res->fetch_object() : null;
-			if(null !== $alt){
-				$query = $alt->id;
+			$canonical = OIDplusPagePublicAltIds::getCanonicalStatic($query);
+			if(false!==$canonical){
+			   $query = $canonical;
 				$n = explode(':', $query);
-				if(2>count($n)){
-					array_unshift($n, 'oid');
-					$query = 'oid:'.$query;
-				}
 				$ns = $n[0];
 			}
 		}
