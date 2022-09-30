@@ -61,15 +61,6 @@ class OIDplusRDAP {
 			$cacheFile = false;
 		}
 
-		if (!is_null(OIDplus::getPluginByOid("1.3.6.1.4.1.37553.8.1.8.8.53354196964.641310544"))) { // OIDplusPagePublicAltIds
-			$canonical = OIDplusPagePublicAltIds::getCanonicalStatic($query);
-			if(false!==$canonical){
-			   $query = $canonical;
-				$n = explode(':', $query);
-				$ns = $n[0];
-			}
-		}
-
 		$out = [];
 
 		try {
@@ -79,11 +70,27 @@ class OIDplusRDAP {
 		} catch (Exception $e) {
 			$obj = null;
 		}
+		
+		// If object was not found, try if it is an alternative identifier of another object
+		if(null === $obj) {
+			$alts = OIDplusPagePublicObjects::getAlternativesForQuery($query);
+			foreach ($alts as $alt) {
+				$res = OIDplus::db()->query("select * from ###objects where id = ?", array($alt));
+				if ($res->any()) {
+					$query = $alt;
+					$obj = OIDplusObject::findFitting($query);
+					if (!$obj) $obj = OIDplusObject::parse($query);
+					$query = $obj->nodeId();
+					break;
+				}
+			}
+		}
 
+		// Still nothing found?
 		if(null === $obj){
 			$out['error'] = 'Not found';
 			if(true === $this->useCache){
-			$this->rdap_write_cache($out, $cacheFile);
+				$this->rdap_write_cache($out, $cacheFile);
 			}
 			return $this->rdap_out($out);
 		}
