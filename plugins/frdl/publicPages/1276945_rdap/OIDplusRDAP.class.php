@@ -63,23 +63,15 @@ class OIDplusRDAP {
 
 		$out = [];
 
-		try {
-			$obj = OIDplusObject::findFitting($query);
-			if (!$obj) $obj = OIDplusObject::parse($query);
-			$query = $obj->nodeId();
-		} catch (Exception $e) {
-			$obj = null;
-		}
-		
+		$obj = OIDplusObject::findFitting($query);
+		if (!$obj) $obj = OIDplusObject::parse($query);
+		if ($obj) $query = $obj->nodeId();
+
 		// If object was not found, try if it is an alternative identifier of another object
-		if(null === $obj) {
+		if(!$obj){
 			$alts = OIDplusPagePublicObjects::getAlternativesForQuery($query);
 			foreach ($alts as $alt) {
-				$res = OIDplus::db()->query("select * from ###objects where id = ?", array($alt));
-				if ($res->any()) {
-					$query = $alt;
-					$obj = OIDplusObject::findFitting($query);
-					if (!$obj) $obj = OIDplusObject::parse($query);
+				if ($obj = OIDplusObject::findFitting($alt)) {
 					$query = $obj->nodeId();
 					break;
 				}
@@ -87,7 +79,7 @@ class OIDplusRDAP {
 		}
 
 		// Still nothing found?
-		if(null === $obj){
+		if(!$obj){
 			$out['error'] = 'Not found';
 			if(true === $this->useCache){
 				$this->rdap_write_cache($out, $cacheFile);
