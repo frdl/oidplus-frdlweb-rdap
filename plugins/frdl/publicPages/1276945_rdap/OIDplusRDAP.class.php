@@ -71,6 +71,8 @@ class OIDplusRDAP {
 			foreach ($alts as $alt) {
 				if ($obj = OIDplusObject::findFitting($alt)) {
 					$query = $obj->nodeId();
+					$n = explode(':', $query);
+					$ns = $n[0];
 					break;
 				}
 			}
