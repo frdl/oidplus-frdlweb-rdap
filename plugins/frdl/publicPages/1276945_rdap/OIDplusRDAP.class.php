@@ -71,8 +71,6 @@ class OIDplusRDAP {
 			foreach ($alts as $alt) {
 				if ($obj = OIDplusObject::findFitting($alt)) {
 					$query = $obj->nodeId();
-					$n = explode(':', $query);
-					$ns = $n[0];
 					break;
 				}
 			}
@@ -105,7 +103,7 @@ class OIDplusRDAP {
 
 		$out['name'] = $obj->nodeId(true);
 		$out['objectClassName'] = $ns;
-		$out['handle'] = $ns.':'.$n[1];
+		$out['handle'] = implode(':', $n);
 		$out['parentHandle'] =   (null !== $parentHandle && is_callable([$parentHandle, 'nodeId']) )
 		                         ? $obj->one_up()->nodeId(true)
 		                         : null;
