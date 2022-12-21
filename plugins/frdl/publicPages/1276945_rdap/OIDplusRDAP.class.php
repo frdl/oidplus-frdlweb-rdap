@@ -19,7 +19,12 @@
  * limitations under the License.
  */
 
-if (!defined('INSIDE_OIDPLUS')) die();
+namespace Frdlweb\OIDplus;
+
+use ViaThinkSoft\OIDplus\OIDplus;
+use ViaThinkSoft\OIDplus\OIDplusObject;
+use ViaThinkSoft\OIDplus\OIDplusOIDIP;
+use ViaThinkSoft\OIDplus\OIDplusPagePublicObjects;
 
 class OIDplusRDAP {
 
@@ -103,7 +108,7 @@ class OIDplusRDAP {
 
 		$out['name'] = $obj->nodeId(true);
 		$out['objectClassName'] = $ns;
-		$out['handle'] = implode(':', $n);
+		$out['handle'] = $ns.':'.$n[1];
 		$out['parentHandle'] =   (null !== $parentHandle && is_callable([$parentHandle, 'nodeId']) )
 		                         ? $obj->one_up()->nodeId(true)
 		                         : null;

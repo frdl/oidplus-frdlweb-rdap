@@ -19,14 +19,17 @@
  * limitations under the License.
  */
 
+use ViaThinkSoft\OIDplus\OIDplus;
+use ViaThinkSoft\OIDplus\OIDplusGui;
+use ViaThinkSoft\OIDplus\OIDplusException;
+use Frdlweb\OIDplus\OIDplusRDAP;
+
 require_once __DIR__ . '/../../../../../includes/oidplus.inc.php';
 
-
-
 OIDplus::init(true);
-set_exception_handler(array('OIDplusGui', 'html_exception_handler'));
+set_exception_handler(array(OIDplusGui::class, 'html_exception_handler'));
 
-if (OIDplus::baseConfig()->getValue('DISABLE_PLUGIN_OIDplusPagePublicRdap', false)) {
+if (OIDplus::baseConfig()->getValue('DISABLE_PLUGIN_Frdlweb\OIDplus\OIDplusPagePublicRdap', false)) {
 	throw new OIDplusException(_L('This plugin was disabled by the system administrator!'));
 }
 
@@ -48,5 +51,8 @@ if (\PHP_SAPI == 'cli') {
 
 $x = new OIDplusRDAP();
 list($out_content, $out_type) = $x->rdapQuery($query);
+
+OIDplus::invoke_shutdown();
+
 if ($out_type) header('Content-Type:'.$out_type);
 echo $out_content;
