@@ -92,8 +92,6 @@ class OIDplusRDAP {
 					break;
 				}
 			}
-
-			
 			
 			if(true === $this->enableFallbacks && !$obj){
 				foreach($this->fallbackServers as $fallbackServer){ 
@@ -102,15 +100,13 @@ class OIDplusRDAP {
 						   .$ns
 						   .'/'
 						   .$n[1]
-						;
-					
-			 
+						;			 
 					
 					$testProxy = @file_get_contents($proxyUrl);
 					if(false === $testProxy){
 					  continue;						
-					}elseif(is_string($testProxy)){
-			             $testProxyData = json_decode($testProxy);
+					}elseif(is_string($testProxy)){			           
+						$testProxyData = json_decode($testProxy);
 						$testProxyData=(array)$testProxyData;
 						if(isset($testProxyData['error'])){
 						  continue;	
@@ -136,11 +132,7 @@ class OIDplusRDAP {
 						return $this->rdap_out($out);						
 					}
 				}
-						
-
-			}
-			
-			
+			}			
 			// Still nothing found?
 			if(!$obj){
 				$out['error'] = 'Not found';
