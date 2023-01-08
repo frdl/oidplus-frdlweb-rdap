@@ -32,12 +32,24 @@ class OIDplusRDAP {
 	protected $useCache;
 	protected $rdapCacheDir;
 	protected $rdapCacheExpires;
+	
+	protected $enableFallbacks = true;
+	protected $fallbackServers = [];
 
 	public function __construct() {
 		$this->rdapBaseUri = OIDplus::baseConfig()->getValue('RDAP_BASE_URI', OIDplus::webpath() );
 		$this->useCache = OIDplus::baseConfig()->getValue('RDAP_CACHE_ENABLED', false );
 		$this->rdapCacheDir = OIDplus::baseConfig()->getValue('RDAP_CACHE_DIRECTORY', OIDplus::localpath().'userdata/cache/' );
 		$this->rdapCacheExpires = OIDplus::baseConfig()->getValue('RDAP_CACHE_EXPIRES', 60 * 3 );
+		
+		$this->enableFallbacks = OIDplus::baseConfig()->getValue('RDAP_FALLBACKS', true );
+		$this->fallbackServers =  [];
+		$this->fallbackServers = array_merge($this->fallbackServers, OIDplus::baseConfig()->getValue('RDAP_SERVERS',  [    
+			'https://rdap.frdlweb.de',
+			'https://rdap.frdl.de', 
+		] ));
+		
+		
 	}
 
 	public function rdapQuery($query) {
@@ -50,10 +62,11 @@ class OIDplusRDAP {
 		$ns = $n[0];
 
 		if(true === $this->useCache){
-			$cacheFile = $this->rdapCacheDir. 'rdap_'
+			$cacheFile = $this->rdapCacheDir. 'rdap_v04_'
 			.sha1(\get_current_user()
 				  . $this->rdapBaseUri.__FILE__.$query
 				  .OIDplus::baseConfig()->getValue('SERVER_SECRET', sha1(__FILE__.\get_current_user()) )
+				  .filemtime(__FILE__)
 				 )
 			.'.'
 			.strlen( $this->rdapBaseUri.$query )
@@ -80,6 +93,54 @@ class OIDplusRDAP {
 				}
 			}
 
+			
+			
+			if(true === $this->enableFallbacks && !$obj){
+				foreach($this->fallbackServers as $fallbackServer){ 
+					$proxyUrl = rtrim($fallbackServer, '/')
+						   .'/'
+						   .$ns
+						   .'/'
+						   .$n[1]
+						;
+					
+			 
+					
+					$testProxy = @file_get_contents($proxyUrl);
+					if(false === $testProxy){
+					  continue;						
+					}elseif(is_string($testProxy)){
+			             $testProxyData = json_decode($testProxy);
+						$testProxyData=(array)$testProxyData;
+						if(isset($testProxyData['error'])){
+						  continue;	
+						}
+						
+						foreach($testProxyData['links'] as $link){
+						  $link = (array)$link;
+						  if('alternate'===$link['rel']
+							 && 'application/rdap+json' === $link['type']	
+							 && $link['value'] !== $proxyUrl){
+							  $testProxy2 = @file_get_contents($proxyUrl);
+							  if(false !== $testProxy2){
+						         $testProxyData2 = json_decode($testProxy2);
+						         $testProxyData=(array)$testProxyData2;
+							  }
+						  }
+						}
+						
+						$out=$testProxyData;
+						if(true === $this->useCache){						
+							$this->rdap_write_cache($out, $cacheFile);					
+						}		    				
+						return $this->rdap_out($out);						
+					}
+				}
+						
+
+			}
+			
+			
 			// Still nothing found?
 			if(!$obj){
 				$out['error'] = 'Not found';
