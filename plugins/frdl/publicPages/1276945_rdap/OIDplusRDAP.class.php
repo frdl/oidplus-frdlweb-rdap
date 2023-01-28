@@ -160,7 +160,7 @@ class OIDplusRDAP {
 
 			}
 			
-			
+			/**/
 			if(true === $this->enableIanaPenFallback 
 			   && !$obj 
 			   && (!isset($_REQUEST['action']) || $_REQUEST['action'] !== 'tree_load')
@@ -182,6 +182,7 @@ class OIDplusRDAP {
 			
 			
 			
+			
 			// Still nothing found?
 			if(!$obj){
 				$out['error'] = 'Not found';
@@ -195,6 +196,35 @@ class OIDplusRDAP {
 			$query = $obj->nodeId();
 		}
 
+		
+		
+
+		if ($obj->implementsFeature('1.3.6.1.4.1.37476.2.5.2.3.4') && \is_callable([$obj, 'whoisObjectAttributes'])) {
+						// Also ask $obj for extra attributes:
+						// This way we could add various additional information, e.g. IPv4/6 range analysis, interpretation of GUID, etc.
+			$obj->whoisObjectAttributes($obj->nodeId(), $out);				
+		}
+
+		if ($obj->implementsFeature('1.3.6.1.4.1.37476.2.5.2.3.4') && \is_callable([$obj, 'whoisRaAttributes'])) {
+						// Also ask $obj for extra attributes:
+						// This way we could add various additional information, e.g. IPv4/6 range analysis, interpretation of GUID, etc.
+			$obj->whoisRaAttributes(\is_callable([$obj, 'whoisRaAttributes']) ? $obj->getRaMail() : null, $out);				
+		}					
+
+		foreach (OIDplus::getAllPlugins() as $plugin) { 
+			if ($plugin->implementsFeature('1.3.6.1.4.1.37476.2.5.2.3.4') && \is_callable([$plugin, 'whoisObjectAttributes']) ) {	
+				$plugin->whoisObjectAttributes($obj->nodeId(), $out);	
+			}
+			if ($plugin->implementsFeature('1.3.6.1.4.1.37476.2.5.2.3.4') 
+				&& \is_callable([$plugin, 'whoisRaAttributes'])
+			   ) {	
+				$plugin->whoisRaAttributes(\is_callable([$obj, 'whoisRaAttributes']) ? $obj->getRaMail() : null, $out);	
+			}
+		}
+		
+		
+		
+		
 		$whois_server = '';
 		if (OIDplus::config()->getValue('individual_whois_server', '') != '') {
 			$whois_server = OIDplus::config()->getValue('individual_whois_server', '');
