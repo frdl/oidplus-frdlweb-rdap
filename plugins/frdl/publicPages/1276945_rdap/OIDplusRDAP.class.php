@@ -208,7 +208,7 @@ class OIDplusRDAP {
 		if ($obj->implementsFeature('1.3.6.1.4.1.37476.2.5.2.3.4') && \is_callable([$obj, 'whoisRaAttributes'])) {
 						// Also ask $obj for extra attributes:
 						// This way we could add various additional information, e.g. IPv4/6 range analysis, interpretation of GUID, etc.
-			$obj->whoisRaAttributes(\is_callable([$obj, 'whoisRaAttributes']) ? $obj->getRaMail() : null, $out);				
+			$obj->whoisRaAttributes(\is_callable([$obj, 'getRaMail']) ? $obj->getRaMail() : null, $out);				
 		}					
 
 		foreach (OIDplus::getAllPlugins() as $plugin) { 
@@ -218,7 +218,7 @@ class OIDplusRDAP {
 			if ($plugin->implementsFeature('1.3.6.1.4.1.37476.2.5.2.3.4') 
 				&& \is_callable([$plugin, 'whoisRaAttributes'])
 			   ) {	
-				$plugin->whoisRaAttributes(\is_callable([$obj, 'whoisRaAttributes']) ? $obj->getRaMail() : null, $out);	
+				$plugin->whoisRaAttributes(\is_callable([$obj, 'getRaMail']) ? $obj->getRaMail() : null, $out);	
 			}
 		}
 		
