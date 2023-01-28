@@ -35,23 +35,43 @@ class OIDplusRDAP {
 	
 	protected $enableFallbacks = true;
 	protected $fallbackServers = [];
+	
+	protected $Fetcher = null;
 
 	public function __construct() {
 		$this->rdapBaseUri = OIDplus::baseConfig()->getValue('RDAP_BASE_URI', OIDplus::webpath() );
 		$this->useCache = OIDplus::baseConfig()->getValue('RDAP_CACHE_ENABLED', false );
 		$this->rdapCacheDir = OIDplus::baseConfig()->getValue('RDAP_CACHE_DIRECTORY', OIDplus::localpath().'userdata/cache/' );
-		$this->rdapCacheExpires = OIDplus::baseConfig()->getValue('RDAP_CACHE_EXPIRES', 60 * 3 );
-		
-		$this->enableFallbacks = OIDplus::baseConfig()->getValue('RDAP_FALLBACKS', true );
+		$this->rdapCacheExpires = OIDplus::baseConfig()->getValue('RDAP_CACHE_EXPIRES', 60 * 3 );		
+		$this->enableFallbacks = OIDplus::baseConfig()->getValue('RDAP_FALLBACKS', true );		
+		$this->enableIanaPenFallback = OIDplus::baseConfig()->getValue('RDAP_FALLBACKS_WITH_IANA_PEN', true );
 		$this->fallbackServers =  [];
-		$this->fallbackServers = array_merge($this->fallbackServers, OIDplus::baseConfig()->getValue('RDAP_SERVERS',  [    
+		$this->fallbackServers = array_merge($this->fallbackServers, OIDplus::baseConfig()->getValue('RDAP_SERVERS',  [  
+			'https://rdap.frdl.de',   
 			'https://rdap.frdlweb.de',
-			'https://rdap.frdl.de', 
 		] ));
 		
 		
 	}
-
+	
+	public function getIanaPenFetcher() {
+		if(null === $this->Fetcher ){
+		  if(\class_exists(\Frdlweb\OIDplusIanaPen::class)){
+			   $this->Fetcher =( new \Frdlweb\OIDplusIanaPen(\Frdlweb\OIDplusIanaPen::root()))->getFetcher();
+		  }else{	 
+			  if(!file_exists(__DIR__.\DIRECTORY_SEPARATOR.'IanaPenListFetcher.class.php')){
+				file_put_contents(__DIR__.\DIRECTORY_SEPARATOR.'IanaPenListFetcher.class.php',
+			     file_get_contents(
+			      'https://raw.githubusercontent.com/frdl/iana-enterprise-numbers-fetcher/main/src/IanaPenListFetcher.class.php'
+			    ));
+			  }			
+			  require_once __DIR__.\DIRECTORY_SEPARATOR.'IanaPenListFetcher.class.php';		  				
+		    $this->Fetcher = new \Frdlweb\IanaPenListFetcher();
+		  }
+		}
+		return $this->Fetcher;
+	}
+	
 	public function rdapQuery($query) {
 		$query = str_replace('oid:.', 'oid:', $query);
 		$n = explode(':', $query);
@@ -80,7 +100,7 @@ class OIDplusRDAP {
 		}
 
 		$out = [];
-
+ 
 		$obj = OIDplusObject::findFitting($query);
 
 		if(!$obj){
@@ -92,21 +112,25 @@ class OIDplusRDAP {
 					break;
 				}
 			}
+
 			
-			if(true === $this->enableFallbacks && !$obj){
-				foreach($this->fallbackServers as $fallbackServer){ 
+			
+			if(true === $this->enableFallbacks && !$obj && (!isset($_REQUEST['action']) || $_REQUEST['action'] !== 'tree_load') ){
+				foreach($this->fallbackServers as $fallbackServer ){ 
 					$proxyUrl = rtrim($fallbackServer, '/')
 						   .'/'
 						   .$ns
 						   .'/'
 						   .$n[1]
-						;			 
+						;
+					
+			 
 					
 					$testProxy = @file_get_contents($proxyUrl);
 					if(false === $testProxy){
 					  continue;						
-					}elseif(is_string($testProxy)){			           
-						$testProxyData = json_decode($testProxy);
+					}elseif(is_string($testProxy)){
+			             $testProxyData = json_decode($testProxy);
 						$testProxyData=(array)$testProxyData;
 						if(isset($testProxyData['error'])){
 						  continue;	
@@ -132,7 +156,32 @@ class OIDplusRDAP {
 						return $this->rdap_out($out);						
 					}
 				}
-			}			
+						
+
+			}
+			
+			
+			if(true === $this->enableIanaPenFallback 
+			   && !$obj 
+			   && (!isset($_REQUEST['action']) || $_REQUEST['action'] !== 'tree_load')
+			   && \class_exists(\Frdlweb\OIDplusIanaPen::class) ){
+				$obj = \Frdlweb\OIDplusIanaPen::parse($query);
+				if($obj){
+					//$query = 'oid:'.$obj->getDotNotation();
+				}
+			}elseif(true === $this->enableIanaPenFallback && !$obj  && (!isset($_REQUEST['action']) || $_REQUEST['action'] !== 'tree_load')){
+				$pen = $this->getIanaPenFetcher()->get($query);
+				if(!is_array($pen) && ('pen' === $ns || 'iana-pen' === $ns)){
+					$pen = $this->getIanaPenFetcher()->get($n[1]);
+				}
+				if(is_array($pen) ){
+				   return  $this->rdap_out($pen);
+					 die('@Todo... You should install the ObjectType Plugin https://github.com/frdl/frdl-oidplus-plugin-type-pen!');
+				}
+			}
+			
+			
+			
 			// Still nothing found?
 			if(!$obj){
 				$out['error'] = 'Not found';
@@ -141,6 +190,7 @@ class OIDplusRDAP {
 				}
 				return $this->rdap_out($out);
 			}
+			
 		} else {
 			$query = $obj->nodeId();
 		}
@@ -215,7 +265,7 @@ class OIDplusRDAP {
 			$oidIPUrl = OIDplus::webpath().'plugins/viathinksoft/publicPages/100_whois/whois/webwhois.php?query='.urlencode($query);
 
 			$oidip_generator = new OIDplusOIDIP();
-
+ 
 			list($oidIP, $dummy_content_type) = $oidip_generator->oidipQuery($query);
 
 			$out['remarks'][] = [
@@ -277,6 +327,13 @@ class OIDplusRDAP {
 			'active',
 		];
 
+		if(null === $out['parentHandle'] && isset($out['oidplus_oidip']) 
+		   && isset($out['oidplus_oidip']->oidip)
+		  && isset($out['oidplus_oidip']->oidip->objectSection)
+		  && isset($out['oidplus_oidip']->oidip->objectSection->parent)
+		  ){
+		   $out['parentHandle'] = explode(' ', $out['oidplus_oidip']->oidip->objectSection->parent, 2)[0];	
+		}
 
 		if(true === $this->useCache){
 			$this->rdap_write_cache($out, $cacheFile);
