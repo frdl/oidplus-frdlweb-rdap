@@ -2,7 +2,7 @@
 
 /*
  * OIDplus 2.0 RDAP
- * Copyright 2019 - 2022 Daniel Marschall, ViaThinkSoft
+ * Copyright 2019 - 2023 Daniel Marschall, ViaThinkSoft
  * Authors               Daniel Marschall, ViaThinkSoft
  *                       Till Wehowski, Frdlweb
  *
@@ -26,52 +26,32 @@ use ViaThinkSoft\OIDplus\OIDplusObject;
 use ViaThinkSoft\OIDplus\OIDplusOIDIP;
 use ViaThinkSoft\OIDplus\OIDplusPagePublicObjects;
 
+// phpcs:disable PSR1.Files.SideEffects
+\defined('INSIDE_OIDPLUS') or die;
+// phpcs:enable PSR1.Files.SideEffects
+
 class OIDplusRDAP {
 
 	protected $rdapBaseUri;
 	protected $useCache;
 	protected $rdapCacheDir;
 	protected $rdapCacheExpires;
-	
-	protected $enableFallbacks = true;
-	protected $fallbackServers = [];
-	
-	protected $Fetcher = null;
 
+	/**
+	 * @throws \ViaThinkSoft\OIDplus\OIDplusException
+	 */
 	public function __construct() {
 		$this->rdapBaseUri = OIDplus::baseConfig()->getValue('RDAP_BASE_URI', OIDplus::webpath() );
 		$this->useCache = OIDplus::baseConfig()->getValue('RDAP_CACHE_ENABLED', false );
 		$this->rdapCacheDir = OIDplus::baseConfig()->getValue('RDAP_CACHE_DIRECTORY', OIDplus::localpath().'userdata/cache/' );
-		$this->rdapCacheExpires = OIDplus::baseConfig()->getValue('RDAP_CACHE_EXPIRES', 60 * 3 );		
-		$this->enableFallbacks = OIDplus::baseConfig()->getValue('RDAP_FALLBACKS', true );		
-		$this->enableIanaPenFallback = OIDplus::baseConfig()->getValue('RDAP_FALLBACKS_WITH_IANA_PEN', true );
-		$this->fallbackServers =  [];
-		$this->fallbackServers = array_merge($this->fallbackServers, OIDplus::baseConfig()->getValue('RDAP_SERVERS',  [  
-			'https://rdap.frdl.de',   
-			'https://rdap.frdlweb.de',
-		] ));
-		
-		
+		$this->rdapCacheExpires = OIDplus::baseConfig()->getValue('RDAP_CACHE_EXPIRES', 60 * 3 );
 	}
-	
-	public function getIanaPenFetcher() {
-		if(null === $this->Fetcher ){
-		  if(\class_exists(\Frdlweb\OIDplusIanaPen::class)){
-			   $this->Fetcher =( new \Frdlweb\OIDplusIanaPen(\Frdlweb\OIDplusIanaPen::root()))->getFetcher();
-		  }else{	 
-			  if(!file_exists(__DIR__.\DIRECTORY_SEPARATOR.'IanaPenListFetcher.class.php')){
-				file_put_contents(__DIR__.\DIRECTORY_SEPARATOR.'IanaPenListFetcher.class.php',
-			     file_get_contents(
-			      'https://raw.githubusercontent.com/frdl/iana-enterprise-numbers-fetcher/main/src/IanaPenListFetcher.class.php'
-			    ));
-			  }			
-			  require_once __DIR__.\DIRECTORY_SEPARATOR.'IanaPenListFetcher.class.php';		  				
-		    $this->Fetcher = new \Frdlweb\IanaPenListFetcher();
-		  }
-		}
-		return $this->Fetcher;
-	}
-	
+
+	/**
+	 * @param $query
+	 * @return array
+	 * @throws \ViaThinkSoft\OIDplus\OIDplusException
+	 */
 	public function rdapQuery($query) {
 		$query = str_replace('oid:.', 'oid:', $query);
 		$n = explode(':', $query);
@@ -82,11 +62,10 @@ class OIDplusRDAP {
 		$ns = $n[0];
 
 		if(true === $this->useCache){
-			$cacheFile = $this->rdapCacheDir. 'rdap_v04_'
+			$cacheFile = $this->rdapCacheDir. 'rdap_'
 			.sha1(\get_current_user()
 				  . $this->rdapBaseUri.__FILE__.$query
 				  .OIDplus::baseConfig()->getValue('SERVER_SECRET', sha1(__FILE__.\get_current_user()) )
-				  .filemtime(__FILE__)
 				 )
 			.'.'
 			.strlen( $this->rdapBaseUri.$query )
@@ -100,7 +79,7 @@ class OIDplusRDAP {
 		}
 
 		$out = [];
- 
+
 		$obj = OIDplusObject::findFitting($query);
 
 		if(!$obj){
@@ -113,76 +92,6 @@ class OIDplusRDAP {
 				}
 			}
 
-			
-			
-			if(true === $this->enableFallbacks && !$obj && (!isset($_REQUEST['action']) || $_REQUEST['action'] !== 'tree_load') ){
-				foreach($this->fallbackServers as $fallbackServer ){ 
-					$proxyUrl = rtrim($fallbackServer, '/')
-						   .'/'
-						   .$ns
-						   .'/'
-						   .$n[1]
-						;
-					
-			 
-					
-					$testProxy = @file_get_contents($proxyUrl);
-					if(false === $testProxy){
-					  continue;						
-					}elseif(is_string($testProxy)){
-			             $testProxyData = json_decode($testProxy);
-						$testProxyData=(array)$testProxyData;
-						if(isset($testProxyData['error'])){
-						  continue;	
-						}
-						
-						foreach($testProxyData['links'] as $link){
-						  $link = (array)$link;
-						  if('alternate'===$link['rel']
-							 && 'application/rdap+json' === $link['type']	
-							 && $link['value'] !== $proxyUrl){
-							  $testProxy2 = @file_get_contents($proxyUrl);
-							  if(false !== $testProxy2){
-						         $testProxyData2 = json_decode($testProxy2);
-						         $testProxyData=(array)$testProxyData2;
-							  }
-						  }
-						}
-						
-						$out=$testProxyData;
-						if(true === $this->useCache){						
-							$this->rdap_write_cache($out, $cacheFile);					
-						}		    				
-						return $this->rdap_out($out);						
-					}
-				}
-						
-
-			}
-			
-			/**/
-			if(true === $this->enableIanaPenFallback 
-			   && !$obj 
-			   && (!isset($_REQUEST['action']) || $_REQUEST['action'] !== 'tree_load')
-			   && \class_exists(\Frdlweb\OIDplusIanaPen::class) ){
-				$obj = \Frdlweb\OIDplusIanaPen::parse($query);
-				if($obj){
-					//$query = 'oid:'.$obj->getDotNotation();
-				}
-			}elseif(true === $this->enableIanaPenFallback && !$obj  && (!isset($_REQUEST['action']) || $_REQUEST['action'] !== 'tree_load')){
-				$pen = $this->getIanaPenFetcher()->get($query);
-				if(!is_array($pen) && ('pen' === $ns || 'iana-pen' === $ns)){
-					$pen = $this->getIanaPenFetcher()->get($n[1]);
-				}
-				if(is_array($pen) ){
-				   return  $this->rdap_out($pen);
-					 die('@Todo... You should install the ObjectType Plugin https://github.com/frdl/frdl-oidplus-plugin-type-pen!');
-				}
-			}
-			
-			
-			
-			
 			// Still nothing found?
 			if(!$obj){
 				$out['error'] = 'Not found';
@@ -191,40 +100,10 @@ class OIDplusRDAP {
 				}
 				return $this->rdap_out($out);
 			}
-			
 		} else {
 			$query = $obj->nodeId();
 		}
 
-		
-		
-
-		if ($obj->implementsFeature('1.3.6.1.4.1.37476.2.5.2.3.4') && \is_callable([$obj, 'whoisObjectAttributes'])) {
-						// Also ask $obj for extra attributes:
-						// This way we could add various additional information, e.g. IPv4/6 range analysis, interpretation of GUID, etc.
-			$obj->whoisObjectAttributes($obj->nodeId(), $out);				
-		}
-
-		if ($obj->implementsFeature('1.3.6.1.4.1.37476.2.5.2.3.4') && \is_callable([$obj, 'whoisRaAttributes'])) {
-						// Also ask $obj for extra attributes:
-						// This way we could add various additional information, e.g. IPv4/6 range analysis, interpretation of GUID, etc.
-			$obj->whoisRaAttributes(\is_callable([$obj, 'getRaMail']) ? $obj->getRaMail() : null, $out);				
-		}					
-
-		foreach (OIDplus::getAllPlugins() as $plugin) { 
-			if ($plugin->implementsFeature('1.3.6.1.4.1.37476.2.5.2.3.4') && \is_callable([$plugin, 'whoisObjectAttributes']) ) {	
-				$plugin->whoisObjectAttributes($obj->nodeId(), $out);	
-			}
-			if ($plugin->implementsFeature('1.3.6.1.4.1.37476.2.5.2.3.4') 
-				&& \is_callable([$plugin, 'whoisRaAttributes'])
-			   ) {	
-				$plugin->whoisRaAttributes(\is_callable([$obj, 'getRaMail']) ? $obj->getRaMail() : null, $out);	
-			}
-		}
-		
-		
-		
-		
 		$whois_server = '';
 		if (OIDplus::config()->getValue('individual_whois_server', '') != '') {
 			$whois_server = OIDplus::config()->getValue('individual_whois_server', '');
@@ -243,7 +122,7 @@ class OIDplusRDAP {
 		$out['objectClassName'] = $ns;
 		$out['handle'] = $ns.':'.$n[1];
 		$out['parentHandle'] =   (null !== $parentHandle && is_callable([$parentHandle, 'nodeId']) )
-		                         ? $obj->one_up()->nodeId(true)
+		                         ? $parentHandle->nodeId(true)
 		                         : null;
 
 		$out['rdapConformance'] = [
@@ -295,7 +174,7 @@ class OIDplusRDAP {
 			$oidIPUrl = OIDplus::webpath().'plugins/viathinksoft/publicPages/100_whois/whois/webwhois.php?query='.urlencode($query);
 
 			$oidip_generator = new OIDplusOIDIP();
- 
+
 			list($oidIP, $dummy_content_type) = $oidip_generator->oidipQuery($query);
 
 			$out['remarks'][] = [
@@ -357,13 +236,6 @@ class OIDplusRDAP {
 			'active',
 		];
 
-		if(null === $out['parentHandle'] && isset($out['oidplus_oidip']) 
-		   && isset($out['oidplus_oidip']->oidip)
-		  && isset($out['oidplus_oidip']->oidip->objectSection)
-		  && isset($out['oidplus_oidip']->oidip->objectSection->parent)
-		  ){
-		   $out['parentHandle'] = explode(' ', $out['oidplus_oidip']->oidip->objectSection->parent, 2)[0];	
-		}
 
 		if(true === $this->useCache){
 			$this->rdap_write_cache($out, $cacheFile);
@@ -371,11 +243,21 @@ class OIDplusRDAP {
 		return $this->rdap_out($out);
 	}
 
+	/**
+	 * @param $out
+	 * @param $cacheFile
+	 * @return void
+	 */
 	protected function rdap_write_cache($out, $cacheFile){
 		if (!is_string($cacheFile)) return;
 		@file_put_contents($cacheFile, serialize($out));
 	}
 
+	/**
+	 * @param $cacheFile
+	 * @param $rdapCacheExpires
+	 * @return array|null
+	 */
 	protected function rdap_read_cache($cacheFile, $rdapCacheExpires){
 		if (is_string($cacheFile) && file_exists($cacheFile) && filemtime($cacheFile) >= time() - $rdapCacheExpires) {
 			$out = unserialize(file_get_contents($cacheFile));
@@ -386,6 +268,10 @@ class OIDplusRDAP {
 		return null;
 	}
 
+	/**
+	 * @param $out
+	 * @return array
+	 */
 	protected function rdap_out($out){
 		$out_content = json_encode($out);
 		$out_type = 'application/rdap+json';
