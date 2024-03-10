@@ -18,6 +18,6 @@
 	},
     "require" : {
         "frdl/oidplus-io4-bridge-plugin" : "*",
-        "arrayaccess/rdap-client" : "*"
+        "frdl/oid-connect-rdap" : "*"
     }
 }
