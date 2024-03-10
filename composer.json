@@ -1,0 +1,23 @@
+{
+    "name": "frdl/oidplus-frdlweb-rdap",
+    "type": "oiplus-plugin-public-pages",
+    "description": "OIDplus Plugin for RDAP whois for OIDs and other OIDplus Object-Types.",
+    "keywords": ["oiplus", "rdap", "oid-connect"],
+    "license":  ["MIT"],
+    "autoload" : {
+        "classmap" : ["."]
+    },
+    "extra" : {
+        "installer-name" : "1276945_rdap"
+    },
+	"suggest": {
+		"danielmarschall/oidplus": "The main project, this must be your root composer.json project!",
+		"frdl/oiplus-composer-plugin": "Composer Plugin for OIDplus Installations, MUST be required first in the root project, enables OIDplus composer bridges/plugins/admin-gui...",
+		"frdl/oidplus-io4-bridge-plugin" : "Composer and Bridges Manager",
+	  "doctrine/cache" : "caching tools"
+	},
+    "require" : {
+        "frdl/oidplus-io4-bridge-plugin" : "*",
+        "arrayaccess/rdap-client" : "*"
+    }
+}
