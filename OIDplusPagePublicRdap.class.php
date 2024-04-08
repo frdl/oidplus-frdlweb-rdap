@@ -144,7 +144,12 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 					 }
 					}
 		 
-		    }				
+		    }		
+			
+							
+			header('Content-Type:'.$out_type);							  
+			echo $out_content;							
+			die();
 		}
 		
 		return false;
