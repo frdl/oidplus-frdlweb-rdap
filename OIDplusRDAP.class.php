@@ -21,7 +21,9 @@
 
 namespace Frdlweb\OIDplus;
 
+use Frdlweb\OIDplus\OIDplusPagePublicRdap;
 use ViaThinkSoft\OIDplus\OIDplus;
+use ViaThinkSoft\OIDplus\OIDplusBaseClass;
 use ViaThinkSoft\OIDplus\OIDplusObject;
 use ViaThinkSoft\OIDplus\OIDplusOIDIP;
 use ViaThinkSoft\OIDplus\OIDplusPagePublicObjects;
@@ -30,29 +32,52 @@ use ViaThinkSoft\OIDplus\OIDplusPagePublicObjects;
 \defined('INSIDE_OIDPLUS') or die;
 // phpcs:enable PSR1.Files.SideEffects
 
-class OIDplusRDAP {
+class OIDplusRDAP extends OIDplusBaseClass {
 
+	/**
+	 * @var string
+	 */
 	protected $rdapBaseUri;
+
+	/**
+	 * @var bool
+	 */
 	protected $useCache;
+
+	/**
+	 * @var string
+	 */
 	protected $rdapCacheDir;
+
+	/**
+	 * @var int
+	 */
 	protected $rdapCacheExpires;
 
 	/**
 	 * @throws \ViaThinkSoft\OIDplus\OIDplusException
 	 */
 	public function __construct() {
-		$this->rdapBaseUri = OIDplus::baseConfig()->getValue('RDAP_BASE_URI', OIDplus::webpath() );
+		$this->rdapBaseUri = OIDplusPagePublicRdap::getRdapServerBase();
+		//OIDplus::baseConfig()->getValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', OIDplus::webpath().'rdap/' );
 		$this->useCache = OIDplus::baseConfig()->getValue('RDAP_CACHE_ENABLED', false );
 		$this->rdapCacheDir = OIDplus::baseConfig()->getValue('RDAP_CACHE_DIRECTORY', OIDplus::localpath().'userdata/cache/' );
 		$this->rdapCacheExpires = OIDplus::baseConfig()->getValue('RDAP_CACHE_EXPIRES', 60 * 3 );
 	}
 
+	
+	public function rdapExtensions($out, $namespace, $id, $obj){
+		
+		
+		return $out;
+	}
+	
 	/**
-	 * @param $query
+	 * @param string $query
 	 * @return array
 	 * @throws \ViaThinkSoft\OIDplus\OIDplusException
 	 */
-	public function rdapQuery($query) {
+	public function rdapQuery(string $query): array {
 		$query = str_replace('oid:.', 'oid:', $query);
 		$n = explode(':', $query);
 		if(2>count($n)){
@@ -65,7 +90,7 @@ class OIDplusRDAP {
 			$cacheFile = $this->rdapCacheDir. 'rdap_'
 			.sha1(\get_current_user()
 				  . $this->rdapBaseUri.__FILE__.$query
-				  .OIDplus::baseConfig()->getValue('SERVER_SECRET', sha1(__FILE__.\get_current_user()) )
+				  .OIDplus::authUtils()->makeSecret(['cee75760-f4f8-11ed-b67e-3c4a92df8582'])
 				 )
 			.'.'
 			.strlen( $this->rdapBaseUri.$query )
@@ -170,16 +195,121 @@ class OIDplusRDAP {
 
 		];
 
+		//WEID-RAMP 
+		/*
+		        $out['rdapConformance'][]='webfan_weidplus';
+				$out['webfan_weidplus_classes'] = [
+					
+											 "webfinger"=>[					
+												'type'=>'service',						
+											 ],
+					
+				                             "profile"=>[					
+												 'type'=>'service',				
+											 ] , 
+				                             "provider"=>[					
+												'type'=>'service',				
+											 ] , 
+				                             "service"=>[					
+												'type'=>'service',				
+											 ] , 
+											 "handle"=>[					
+												'type'=>'service',							
+											 ],  
+											 "entity"=>[					
+												'type'=>'service',						
+											 ],
+											 "ra"=>[					
+												'type'=>'service',						
+											 ], 
+											 "web"=>[					
+												'type'=>'service',							
+											 ], 
+											 "dav"=>[					
+												'type'=>'service',							
+											 ],  
+											 "registrar"=>[					
+												'type'=>'service',					
+											 ],
+											 "rdap-url"=>[					
+												'type'=>'service',								
+											 ],
+											 "rdap-client-server"=>[					
+												'type'=>'service',								
+											 ],
+											 "rdap-root-server"=>[					
+												'type'=>'service',						
+											 ],
+											 "rdap-registrar-server"=>[					
+												'type'=>'service',							
+											 ],
+											 "rdap-local-registry-server"=>[					
+												'type'=>'service',							
+											 ],
+										
+					                         "rdap-server-bootstrap"=>[					
+												'type'=>'service',						
+											 ],				
+											 "rdap-root-bootstrap"=>[					
+												'type'=>'service',						
+											 ],
+											 "rdap-registrar-bootstrap"=>[					
+												'type'=>'service',						
+											 ],
+											 "rdap-extension"=>[					
+												'type'=>'service',					
+											 ],	
+					
+
+											]; 
+			foreach (OIDplus::getEnabledObjectTypes() as $ot) {
+				$otns=$ot::ns();
+				 $out['webfan_weidplus_classes'][$otns]=[
+					 'type'=>'object',
+					 'class'=>$otns,
+					
+				 ];
+			}		
+		*/
+					/*
+											 "email"=>[					
+												 'type'=>'service',					
+											 ], 
+											 "connection"=>[					
+												'type'=>'service',						
+											 ],
+											 "hcard"=>[					
+												'type'=>'service',					
+											 ],
+				
+					
+											 "adapter"=>[					
+												 'type'=>'service:1.3.6.1.4.1.37553.8.1.8.1.33061',				
+											 ],
+											 "xorg"=>[					
+												 'type'=>'service:1.3.6.1.4.1.37553.8.1.8.1.33061',				
+											 ],
+											 "xid"=>[					
+												 'type'=>'service:1.3.6.1.4.1.37553.8.1.8.1.33061',				
+											 ],
+											
+											 "oid-ip"=>[					
+												 'type'=>'urn:ietf:id:draft-viathinksoft-oidip-07',				
+											 ],
+					*/		
+		 
 		if (!is_null(OIDplus::getPluginByOid("1.3.6.1.4.1.37476.2.5.2.4.1.100"))) { // OIDplusPagePublicWhois
 			$oidIPUrl = OIDplus::webpath().'plugins/viathinksoft/publicPages/100_whois/whois/webwhois.php?query='.urlencode($query);
 
 			$oidip_generator = new OIDplusOIDIP();
 
-			list($oidIP, $dummy_content_type) = $oidip_generator->oidipQuery($query);
+		//	list($oidIP, $dummy_content_type) = $oidip_generator->oidipQuery($query);
 
 			$out['remarks'][] = [
 				"title" => "OID-IP Result",
-				"description" => $oidIP,
+				"description" => [
+					sprintf("Additional %s %s was added.", 'OID-IP Result info from RDAP-plugin', "1.3.6.1.4.1.37476.2.5.2.4.1.100"),
+				],
 				"links" => [
 						[
 							"href"=> $oidIPUrl,
@@ -207,8 +337,29 @@ class OIDplusRDAP {
 
 			list($oidIPJSON, $dummy_content_type) = $oidip_generator->oidipQuery("$query\$format=json");
 			$out['oidplus_oidip'] = json_decode($oidIPJSON);
+			$out['rdapConformance'][]='oidplus_oidip';
+			$out['oidplus_oidip_properties'] = [
+				                             "\$schemma" , 
+											 "oidip",
+											
+											];	
+
+		}else{
+		   //no oidplus_oidip plugin
+			$out['remarks'][] = [
+				"title" => "Availability",
+				"description" => [
+					sprintf("The %s %s is missing.", 'OID-IP Result from RDAP-plugin', "1.3.6.1.4.1.37476.2.5.2.4.1.100"),
+				],
+				"links"=> []
+			];
+			$out['oidplus_oidip'] = false;
 		}
 
+			
+			
+		$out = $this->rdapExtensions($out, $ns,  $n[1], $obj);	
+			
 		$out['notices']=[
 			 [
 				"title" => "Authentication Policy",
@@ -244,22 +395,21 @@ class OIDplusRDAP {
 	}
 
 	/**
-	 * @param $out
-	 * @param $cacheFile
+	 * @param array $out
+	 * @param string $cacheFile
 	 * @return void
 	 */
-	protected function rdap_write_cache($out, $cacheFile){
-		if (!is_string($cacheFile)) return;
+	protected function rdap_write_cache(array $out, string $cacheFile){
 		@file_put_contents($cacheFile, serialize($out));
 	}
 
 	/**
-	 * @param $cacheFile
-	 * @param $rdapCacheExpires
+	 * @param string $cacheFile
+	 * @param int $rdapCacheExpires
 	 * @return array|null
 	 */
-	protected function rdap_read_cache($cacheFile, $rdapCacheExpires){
-		if (is_string($cacheFile) && file_exists($cacheFile) && filemtime($cacheFile) >= time() - $rdapCacheExpires) {
+	protected function rdap_read_cache(string $cacheFile, int $rdapCacheExpires){
+		if (file_exists($cacheFile) && filemtime($cacheFile) >= time() - $rdapCacheExpires) {
 			$out = unserialize(file_get_contents($cacheFile));
 			if(is_array($out) || is_object($out)){
 				return $this->rdap_out($out);
@@ -269,10 +419,10 @@ class OIDplusRDAP {
 	}
 
 	/**
-	 * @param $out
+	 * @param array $out
 	 * @return array
 	 */
-	protected function rdap_out($out){
+	protected function rdap_out(array $out): array {
 		$out_content = json_encode($out);
 		$out_type = 'application/rdap+json';
 		return array($out_content, $out_type);
