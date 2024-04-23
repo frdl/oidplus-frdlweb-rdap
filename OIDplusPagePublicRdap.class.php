@@ -31,7 +31,7 @@ use ViaThinkSoft\OIDplus\OIDplusException;
 use ViaThinkSoft\OIDplus\OIDplusOID;
 use ViaThinkSoft\OIDplus\OIDplusRA;
 use ViaThinkSoft\OIDplus\OIDplusNaturalSortedQueryResult;
-
+use ViaThinkSoft\OIDplus\OIDplusOIDIP;
 // phpcs:disable PSR1.Files.SideEffects
 \defined('INSIDE_OIDPLUS') or die;
 // phpcs:enable PSR1.Files.SideEffects
@@ -51,6 +51,71 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 	protected $rdapServer_configdir;
 	protected $rdapServer_bootfile;		
 	
+				   
+				   
+	public function rdapExtensions($out, $namespace, $id, $obj, $query){
+	if (!is_null(OIDplus::getPluginByOid("1.3.6.1.4.1.37476.2.5.2.4.1.100"))) { // OIDplusPagePublicWhois
+			$oidIPUrl = OIDplus::webpath().'plugins/viathinksoft/publicPages/100_whois/whois/webwhois.php?query='.urlencode($query);
+
+			$oidip_generator = new OIDplusOIDIP();
+
+		//	list($oidIP, $dummy_content_type) = $oidip_generator->oidipQuery($query);
+
+			$out['remarks'][] = [
+				"title" => "OID-IP Result",
+				"description" => [
+					sprintf("Additional %s %s was added.", 'OID-IP Result info from RDAP-plugin', "1.3.6.1.4.1.37476.2.5.2.4.1.100"),
+				],
+				"links" => [
+						[
+							"href"=> $oidIPUrl,
+							"type"=> "text/plain",
+							"title"=> sprintf("OIDIP Result for the %s %s (Plaintext)", $ns, $n[1]),
+							"value"=> $oidIPUrl,
+							"rel"=> "alternate"
+						],
+						[
+							"href"=> "$oidIPUrl\$format=json",
+							"type"=> "application/json",
+							"title"=> sprintf("OIDIP Result for the %s %s (JSON)", $ns, $n[1]),
+							"value"=> "$oidIPUrl\$format=json",
+							"rel"=> "alternate"
+						],
+						[
+							"href"=> "$oidIPUrl\$format=xml",
+							"type"=> "application/xml",
+							"title"=> sprintf("OIDIP Result for the %s %s (XML)", $ns, $n[1]),
+							"value"=> "$oidIPUrl\$format=xml",
+							"rel"=> "alternate"
+						]
+					]
+				];
+
+			list($oidIPJSON, $dummy_content_type) = $oidip_generator->oidipQuery("$query\$format=json");
+			$out['oidplus_oidip'] = json_decode($oidIPJSON);
+			$out['rdapConformance'][]='oidplus_oidip';
+			$out['oidplus_oidip_properties'] = [
+				                             "\$schemma" , 
+											 "oidip",
+											
+											];	
+
+		}else{
+		   //no oidplus_oidip plugin
+			$out['remarks'][] = [
+				"title" => "Availability",
+				"description" => [
+					sprintf("The %s %s is missing.", 'OID-IP Result from RDAP-plugin', "1.3.6.1.4.1.37476.2.5.2.4.1.100"),
+				],
+				"links"=> []
+			];
+			$out['oidplus_oidip'] = false;
+		}	
+		//oidplus_oidip
+		
+		
+		return $out;
+	}				   
  
 	/**
 	 * Implements interface INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_4
