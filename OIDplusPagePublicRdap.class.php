@@ -53,7 +53,12 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 	
 				   
 				   
-	public function rdapExtensions($out, $namespace, $id, $obj, $query){
+	public function rdapExtensions($out, $namespace, $id, $obj, $query) : array {
+		$ns = $namespace;
+		$n = [
+			$namespace,
+			$id,
+		];
 	if (!is_null(OIDplus::getPluginByOid("1.3.6.1.4.1.37476.2.5.2.4.1.100"))) { // OIDplusPagePublicWhois
 			$oidIPUrl = OIDplus::webpath().'plugins/viathinksoft/publicPages/100_whois/whois/webwhois.php?query='.urlencode($query);
 
@@ -105,18 +110,119 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 			$out['remarks'][] = [
 				"title" => "Availability",
 				"description" => [
-					sprintf("The %s %s is missing.", 'OID-IP Result from RDAP-plugin', "1.3.6.1.4.1.37476.2.5.2.4.1.100"),
+					sprintf("The %s %s is MISSING.", 'OID-IP Result from RDAP-plugin', "1.3.6.1.4.1.37476.2.5.2.4.1.100"),
 				],
 				"links"=> []
 			];
-			$out['oidplus_oidip'] = false;
+			//$out['oidplus_oidip'] = false;
 		}	
 		//oidplus_oidip
 		
+				
+
+		                 
+						$description =strip_tags($obj->getDescription()); 	 
+							  
 		
+		           $ext = [];
+		           $unf = [];
+		           preg_match_all("/(?P<name>[A-Z0-9\-\_\.\"\']+)(\s|\n)(\:|\=)(\s|\n)(?P<value>[^\s]+)/xs",
+								  $description, $matches, \PREG_PATTERN_ORDER);
+		
+		            foreach($matches[0] as $k => $v){
+						$ext[$matches['name'][$k]] = $matches['value'][$k];
+					}
+				         
+		            foreach($ext as $ka => $v){
+						$k = explode('.', $ka, 2)[0];
+					
+						if(is_numeric($k) 
+						    && intval($k) > 0
+						  ){	 
+							$unf[$ka] = $v;
+						}
+					}
+		 
+		          $io4Plugin = OIDplus::getPluginByOid("1.3.6.1.4.1.37476.9000.108.19361.24196");
+		         if (!is_null($io4Plugin)) {
+				      $io4Plugin->getWebfat(true,false);	
+					    $ext = \Wehowski\Helpers\ArrayHelper::unflatten($ext, '.', -1);
+               	}else{
+				    $ext = $this->unflatten($ext, '.', -1);
+				}
+			           
+		           foreach($unf as $k => $v){ 
+							$ext[$k] = $v; 
+					}	        		            
+
+		
+			
+		$out['remarks'][] = [
+				"title" => "frdlweb_ini_dot is available",
+				"description" => [
+					sprintf("Additional %s from %s was added.", 'RDAP-extension Result', "1.3.6.1.4.1.37476.9000.108.1276945.19361.24174.17741"),
+				],
+				"links" => [					
+								
+					[
+						"href"=> 'https://hosted.oidplus.com/viathinksoft/?goto=oid%3A1.3.6.1.4.1.37476.9000.108.1276945.19361.24174.17741',
+							"type"=> "text/plain",
+							"title"=> sprintf("frdlweb_ini_dot for the %s %s (Plaintext)", $ns, $n[1]),
+							"value"=> 'https://hosted.oidplus.com/viathinksoft/?goto=oid%3A1.3.6.1.4.1.37476.9000.108.1276945.19361.24174.17741',
+							"rel"=> "help"
+						],		
+				],				
+		];
+				
+		    $out['frdlweb_ini_dot'] = $ext;
+			$out['rdapConformance'][]='frdlweb_ini_dot'; 
+
+		
+		
+		//redirect_with_content
+		$out['rdapConformance'][]='redirect_with_content'; 
+		if(isset($out['frdlweb_ini_dot']['RDAP'])){
+			  if(isset($out['frdlweb_ini_dot']['RDAP']['URL']['AUTHORITATIV'])
+				 && isset($out['frdlweb_ini_dot']['RDAP']['SYSTEM']) ){
+				  $url = rtrim( $out['frdlweb_ini_dot']['RDAP']['URL']['AUTHORITATIV'],'/ ').'/';
+				  $url.= $ns.'/';
+				  $url.= $id;			 
+				  $headers = @get_headers($url);                
+				  $exists = (bool) strpos($headers[0], '200');  
+				  if($exists){
+					  $out['redirect_with_content'] = $url;
+				  }
+			  }
+		}//$out['frdlweb_ini_dot']['RDAP']
 		return $out;
 	}				   
- 
+   
+				   
+				   
+				   
+				   
+				   
+    public function unflatten(array $arr, $delimiter = '.', $depth = -1)
+    {
+        $output = [];
+        foreach ($arr as $key => $value) {
+        if(($parts = @preg_split($delimiter, $key, null)) === false){
+           //pattern is broken
+          $parts = ($depth>0)?explode($delimiter, $key, $depth):explode($delimiter, $key);
+           }else{
+           //pattern is real
+
+           }
+        //$parts = ($depth>0)?explode($delimiter, $key, $depth):explode($delimiter, $key);
+        $nested = &$output;
+        while (count($parts) > 1) {
+          $nested = &$nested[array_shift($parts)];
+          if (!is_array($nested)) $nested = [];
+        }
+        $nested[array_shift($parts)] = $value;
+        }
+        return $output;
+    }
 	/**
 	 * Implements interface INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_4
 	 * @param string $id
@@ -379,24 +485,44 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 	  //OIDplus::webpath()	
 		return OIDplus::webpath().OIDplus::baseConfig()->getValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'rdap').'/';
 	}
+				   
+				   
+	protected function negotiateResponse(array $o, string $out_type){
+	  //$out['redirect_with_content']	
+		 if(!isset($o['error']) || 'Not found' !== $o['error']){
+			     if(isset($o['redirect_with_content'])){
+					 $url = $o['redirect_with_content'];
+					 unset($o['redirect_with_content']);
+					 header('Location: '.$url, 302);
+				 }
+				 header('Content-Type:'.$out_type);		
+				 echo json_encode($o);		
+				 die();
+		 }
+	}
 	/**
 	 * @param string $request
 	 * @return bool
 	 * @throws OIDplusException
 	 */
 	public function handle404(string $request): bool {
+		$requestOidplus = $request;
 		$request = trim($_SERVER['REQUEST_URI'],'/');
 		$magicLink = false;
 				  
 		foreach (OIDplus::getEnabledObjectTypes() as $ot) {
-				if (str_starts_with($request, $ot::ns().'/')) {
+				if (str_starts_with($request, $ot::ns().'/') || str_starts_with($requestOidplus, $ot::ns().'/') ) {
 					$magicLink = true;
 					break;
 				}
 		}	
-		
 		if($magicLink && !str_starts_with($request, OIDplus::baseConfig()->getValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'rdap').'/')) {
-			$request = OIDplus::baseConfig()->getValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'rdap').$request;
+			$request = rtrim(OIDplus::baseConfig()->getValue('CANONICAL_SYSTEM_URL'), '/ ')
+				.'/'
+				.trim(OIDplus::baseConfig()->getValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'rdap'), '/ ').'/'.$request;
+	//	die($request.'<br />'.$requestOidplus.'<br />'.$_SERVER['REQUEST_URI']);
+			header('Location: '.$request, 302);
+			die('<a href="'.$request.'">'.$request.'</a>');
 		}
 		
 		if (str_starts_with($request, OIDplus::baseConfig()->getValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'rdap').'/')) {
@@ -419,11 +545,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 					list($out_content, $out_type) = $x->rdapQuery($query);		
 					if ($out_type){
 						$o = (array)json_decode($out_content); 
-					 if(!isset($o['error']) || 'Not found' !== $o['error']){
-						header('Content-Type:'.$out_type);		
-					   echo $out_content;		
-					   die();
-					 }
+					   $this->negotiateResponse($o,$out_type);
 					}
 				}
 			}
@@ -436,11 +558,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 					list($out_content, $out_type) = $x->rdapQuery($query);		
 					if ($out_type){
 						$o = (array)json_decode($out_content); 
-					 if(!isset($o['error']) || 'Not found' !== $o['error']){
-						header('Content-Type:'.$out_type);		
-					   echo $out_content;		
-					   die();
-					 }
+					    $this->negotiateResponse($o,$out_type);
 					}
 		 
 		    }		
@@ -598,133 +716,9 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 				   
 				
 				   
-		public function tree(array &$json, string $ra_email=null, bool $nonjs=false, string $req_goto=''): bool {
-			return false;
-			/*
-		if ($nonjs) {
-			$json[] = array(
-				'id' => 'oidplus:system',
-				'icon' => OIDplus::webpath(__DIR__,OIDplus::PATH_RELATIVE).'img/main_icon16.png',
-				'text' => _L('System')
-			);
-
-			$objGoto = OIDplusObject::findFitting($req_goto);
-			$objGotoParent = $objGoto ? $objGoto->getParent() : null;
-			$parent = $objGotoParent ? $objGotoParent->nodeId() : '';
-
-			$objTypesChildren = array();
-			foreach (OIDplus::getEnabledObjectTypes() as $ot) {
-				$icon = $this->get_treeicon_root($ot);
-
-				$json[] = array(
-					'id' => $ot::root(),
-					'icon' => $icon,
-					'text' => $ot::objectTypeTitle()
-				);
-
-				$tmp = OIDplusObject::parse($req_goto);
-				if ($tmp && ($ot == get_class($tmp))) {
-					// TODO: Instead of just having 3 levels (parent, this and children), it would be better if we'd had a full tree of all parents
-					//       on the other hand, for giving search engines content, this is good enough
-					if (empty($parent)) {
-						$res = OIDplus::db()->query("select * from ###objects where " .
-						                            "parent = ? or " .
-						                            "id = ? ", array($req_goto, $req_goto));
-					} else {
-						$res = OIDplus::db()->query("select * from ###objects where " .
-						                            "parent = ? or " .
-						                            "id = ? or " .
-						                            "id = ? ", array($req_goto, $req_goto, $parent));
-					}
-					$res->naturalSortByField('id');
-
-					$z_used = 0;
-					$y_used = 0;
-					$x_used = 0;
-					$stufe = 0;
-					$menu_entries = array();
-					$stufen = array();
-					$max_ent = 0;
-					while ($row = $res->fetch_object()) {
-						$max_ent++;
-						if ($max_ent > 1000) { // TODO: we need to find a solution for this!!!
-							$menu_entry = array('id' => '', 'icon' => '', 'text' => _L('List truncated due to too many subordinate elements'), 'indent' => 0);
-							$menu_entries[] = $menu_entry;
-							$stufen[] = $stufe;
-							break;
-						}
-
-						$obj = OIDplusObject::parse($row->id);
-						if (!$obj) continue; // might happen if the objectType is not available/loaded
-						if (!$obj->userHasReadRights()) continue;
-						$txt = ($row->title ?? '') == '' ? '' : ' -- '.htmlentities($row->title);
-
-						if ($row->id == $parent) { $stufe=0; $z_used++; }
-						if ($row->id == $req_goto) { $stufe=1; $y_used++; }
-						if ($row->parent == $req_goto) { $stufe=2; $x_used++; }
-
-						$menu_entry = array('id' => $row->id, 'icon' => '', 'text' => $txt, 'indent' => 0);
-						$menu_entries[] = $menu_entry;
-						$stufen[] = $stufe;
-					}
-					if ($x_used) foreach ($menu_entries as $i => &$menu_entry) if ($stufen[$i] >= 2) $menu_entry['indent'] += 1;
-					if ($y_used) foreach ($menu_entries as $i => &$menu_entry) if ($stufen[$i] >= 1) $menu_entry['indent'] += 1;
-					if ($z_used) foreach ($menu_entries as $i => &$menu_entry) if ($stufen[$i] >= 0) $menu_entry['indent'] += 1;
-					$json = array_merge($json, $menu_entries);
-				}
-			}
-
-			return true;
-		} else {
-			if ($req_goto === "*") {
-				$goto_path = true; // display everything recursively
-			} else if ($req_goto !== "") {
-				$goto = $req_goto;
-				$path = array();
-				while (true) {
-					$path[] = $goto;
-					$objGoto = OIDplusObject::findFitting($goto);
-					if (!$objGoto) break;
-					$objGotoParent = $objGoto->getParent();
-					$goto = $objGotoParent ? $objGotoParent->nodeId() : '';
-					if ($goto == '') continue;
-				}
-
-				$goto_path = array_reverse($path);
-			} else {
-				$goto_path = null;
-			}
-
-			$objTypesChildren = array();
-			foreach (OIDplus::getEnabledObjectTypes() as $ot) {
-				$icon = $this->get_treeicon_root($ot);
-
-				$child = array('id' => $ot::root(),
-				               'text' => $ot::objectTypeTitle(),
-				               'state' => array("opened" => true),
-				               'icon' => $icon,
-				               'children' => OIDplus::menuUtils()->tree_populate($ot::root(), $goto_path)
-				               );
-				if ($child['icon'] && !file_exists($child['icon'])) $child['icon'] = null; // default icon (folder)
-				$objTypesChildren[] = $child;
-			}
-
-			$json[] = array(
-				'id' => "oidplus:system",
-				'text' => _L('Objects'),
-				'state' => array(
-					"opened" => true,
-					// "selected" => true)  // "selected" is buggy:
-					// 1) The select-event will not be triggered upon loading
-					// 2) The nodes directly blow cannot be opened (loading infinite time)
-				),
-				'icon' => OIDplus::webpath(__DIR__,OIDplus::PATH_RELATIVE).'img/main_icon16.png',
-				'children' => $objTypesChildren
-			);
-
-			return true;
-		}
-		*/
+		
+	public function tree(array &$json, string $ra_email=null, bool $nonjs=false, string $req_goto=''): bool {
+			return false;		
 	}
 
 	/**
@@ -734,38 +728,6 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 	public function tree_search(string $request) {
 		$ary = array();
 		return $ary;
-		/*
-		$ary = array();
-		$found_leaf = false;
-		if ($obj = OIDplusObject::parse($request)) {
-			$found_leaf = OIDplusObject::exists($request);
-			do {
-				if ($obj->userHasReadRights()) {
-					$ary[] = $obj->nodeId();
-				}
-			} while ($obj = $obj->getParent());
-			$ary = array_reverse($ary);
-		}
-		if (!$found_leaf) {
-			$alternatives = $this->getAlternativesForQuery($request);
-			foreach ($alternatives as $alternative) {
-				$ary_ = array();
-				if ($obj = OIDplusObject::parse($alternative)) {
-					if ($obj->userHasReadRights() && OIDplusObject::exists($alternative)) {
-						do {
-							$ary_[] = $obj->nodeId();
-						} while ($obj = $obj->getParent());
-						$ary_ = array_reverse($ary_);
-					}
-				}
-				if (!empty($ary_)) {
-					$ary = $ary_;
-					break;
-				}
-			}
-		}
-		return $ary;
-		*/
 	}			   
 				   
 				   
