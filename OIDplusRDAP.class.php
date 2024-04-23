@@ -66,8 +66,13 @@ class OIDplusRDAP extends OIDplusBaseClass {
 	}
 
 	
-	public function rdapExtensions($out, $namespace, $id, $obj){
+	public function rdapExtensions($out, $namespace, $id, $obj, $query){
+		foreach(OIDplus::getAllPlugins() as $pkey => $plugin){
 		
+			if(method_exists($plugin, 'rdapExtensions')){
+				$out = \call_user_func_array([$plugin, 'rdapExtensions'], [$out, $namespace, $id, $obj, $query]);
+			}
+		}
 		
 		return $out;
 	}
@@ -195,170 +200,9 @@ class OIDplusRDAP extends OIDplusBaseClass {
 
 		];
 
-		//WEID-RAMP 
-		/*
-		        $out['rdapConformance'][]='webfan_weidplus';
-				$out['webfan_weidplus_classes'] = [
-					
-											 "webfinger"=>[					
-												'type'=>'service',						
-											 ],
-					
-				                             "profile"=>[					
-												 'type'=>'service',				
-											 ] , 
-				                             "provider"=>[					
-												'type'=>'service',				
-											 ] , 
-				                             "service"=>[					
-												'type'=>'service',				
-											 ] , 
-											 "handle"=>[					
-												'type'=>'service',							
-											 ],  
-											 "entity"=>[					
-												'type'=>'service',						
-											 ],
-											 "ra"=>[					
-												'type'=>'service',						
-											 ], 
-											 "web"=>[					
-												'type'=>'service',							
-											 ], 
-											 "dav"=>[					
-												'type'=>'service',							
-											 ],  
-											 "registrar"=>[					
-												'type'=>'service',					
-											 ],
-											 "rdap-url"=>[					
-												'type'=>'service',								
-											 ],
-											 "rdap-client-server"=>[					
-												'type'=>'service',								
-											 ],
-											 "rdap-root-server"=>[					
-												'type'=>'service',						
-											 ],
-											 "rdap-registrar-server"=>[					
-												'type'=>'service',							
-											 ],
-											 "rdap-local-registry-server"=>[					
-												'type'=>'service',							
-											 ],
-										
-					                         "rdap-server-bootstrap"=>[					
-												'type'=>'service',						
-											 ],				
-											 "rdap-root-bootstrap"=>[					
-												'type'=>'service',						
-											 ],
-											 "rdap-registrar-bootstrap"=>[					
-												'type'=>'service',						
-											 ],
-											 "rdap-extension"=>[					
-												'type'=>'service',					
-											 ],	
-					
-
-											]; 
-			foreach (OIDplus::getEnabledObjectTypes() as $ot) {
-				$otns=$ot::ns();
-				 $out['webfan_weidplus_classes'][$otns]=[
-					 'type'=>'object',
-					 'class'=>$otns,
-					
-				 ];
-			}		
-		*/
-					/*
-											 "email"=>[					
-												 'type'=>'service',					
-											 ], 
-											 "connection"=>[					
-												'type'=>'service',						
-											 ],
-											 "hcard"=>[					
-												'type'=>'service',					
-											 ],
-				
-					
-											 "adapter"=>[					
-												 'type'=>'service:1.3.6.1.4.1.37553.8.1.8.1.33061',				
-											 ],
-											 "xorg"=>[					
-												 'type'=>'service:1.3.6.1.4.1.37553.8.1.8.1.33061',				
-											 ],
-											 "xid"=>[					
-												 'type'=>'service:1.3.6.1.4.1.37553.8.1.8.1.33061',				
-											 ],
-											
-											 "oid-ip"=>[					
-												 'type'=>'urn:ietf:id:draft-viathinksoft-oidip-07',				
-											 ],
-					*/		
-		 
-		if (!is_null(OIDplus::getPluginByOid("1.3.6.1.4.1.37476.2.5.2.4.1.100"))) { // OIDplusPagePublicWhois
-			$oidIPUrl = OIDplus::webpath().'plugins/viathinksoft/publicPages/100_whois/whois/webwhois.php?query='.urlencode($query);
-
-			$oidip_generator = new OIDplusOIDIP();
-
-		//	list($oidIP, $dummy_content_type) = $oidip_generator->oidipQuery($query);
-
-			$out['remarks'][] = [
-				"title" => "OID-IP Result",
-				"description" => [
-					sprintf("Additional %s %s was added.", 'OID-IP Result info from RDAP-plugin', "1.3.6.1.4.1.37476.2.5.2.4.1.100"),
-				],
-				"links" => [
-						[
-							"href"=> $oidIPUrl,
-							"type"=> "text/plain",
-							"title"=> sprintf("OIDIP Result for the %s %s (Plaintext)", $ns, $n[1]),
-							"value"=> $oidIPUrl,
-							"rel"=> "alternate"
-						],
-						[
-							"href"=> "$oidIPUrl\$format=json",
-							"type"=> "application/json",
-							"title"=> sprintf("OIDIP Result for the %s %s (JSON)", $ns, $n[1]),
-							"value"=> "$oidIPUrl\$format=json",
-							"rel"=> "alternate"
-						],
-						[
-							"href"=> "$oidIPUrl\$format=xml",
-							"type"=> "application/xml",
-							"title"=> sprintf("OIDIP Result for the %s %s (XML)", $ns, $n[1]),
-							"value"=> "$oidIPUrl\$format=xml",
-							"rel"=> "alternate"
-						]
-					]
-				];
-
-			list($oidIPJSON, $dummy_content_type) = $oidip_generator->oidipQuery("$query\$format=json");
-			$out['oidplus_oidip'] = json_decode($oidIPJSON);
-			$out['rdapConformance'][]='oidplus_oidip';
-			$out['oidplus_oidip_properties'] = [
-				                             "\$schemma" , 
-											 "oidip",
-											
-											];	
-
-		}else{
-		   //no oidplus_oidip plugin
-			$out['remarks'][] = [
-				"title" => "Availability",
-				"description" => [
-					sprintf("The %s %s is missing.", 'OID-IP Result from RDAP-plugin', "1.3.6.1.4.1.37476.2.5.2.4.1.100"),
-				],
-				"links"=> []
-			];
-			$out['oidplus_oidip'] = false;
-		}
-
+	
 			
-			
-		$out = $this->rdapExtensions($out, $ns,  $n[1], $obj);	
+		$out = $this->rdapExtensions($out, $ns,  $n[1], $obj, $query);	
 			
 		$out['notices']=[
 			 [
