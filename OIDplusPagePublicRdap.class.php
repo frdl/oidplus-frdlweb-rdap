@@ -628,7 +628,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 			}
 			
 			if('POST' === $requestMethod){
-				 if (!$obj->userHasReadRights() && $obj->isConfidental()){    		
+				 if (!$obj->userHasReadRights() && $obj->isConfidential()){    		
     		        throw new OIDplusException('Insufficient authorization to write information to this object.', null, 401);
 		         }	
 		         
@@ -648,7 +648,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 		         
 		         
 			}elseif('GET' === $requestMethod){
-				 if (!$obj->userHasReadRights() && $obj->isConfidental()){    		
+				 if (!$obj->userHasReadRights() && $obj->isConfidential()){    		
     		        throw new OIDplusException('Insufficient authorization to read information about this object.', null, 401);
 		         }	
 		         
