@@ -93,7 +93,7 @@ class OIDplusRDAP extends OIDplusBaseClass {
 
 		if(true === $this->useCache){
 			$cacheFile = $this->rdapCacheDir. 'rdap_'
-			.sha1(\get_current_user()
+			.sha1('21'.\get_current_user()
 				  . $this->rdapBaseUri.__FILE__.$query
 				  .OIDplus::authUtils()->makeSecret(['cee75760-f4f8-11ed-b67e-3c4a92df8582'])
 				 )
@@ -200,9 +200,9 @@ class OIDplusRDAP extends OIDplusBaseClass {
 
 		];
 
-	
+		
 			
-		$out = $this->rdapExtensions($out, $ns,  $n[1], $obj, $query);	
+		$out = $this->rdapExtensions($out, $obj::ns(), $obj->nodeId(false), $obj, $query);	
 			
 		$out['notices']=[
 			 [
