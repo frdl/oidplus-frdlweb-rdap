@@ -6,6 +6,5 @@
 <xs:element type="xs:string" name="attribute-subject" />
 <xs:element type="xs:string" name="attribute-verb" />
 <xs:element type="xs:string" name="attribute-object" />
-<xs:element type="xs:string" name="attribute-value" />
-<xs:element type="xs:string" name="rdap-redirector" />
+<xs:element type="xs:string" name="attribute-value" /> 
 </xs:schema>
