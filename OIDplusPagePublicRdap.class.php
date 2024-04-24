@@ -60,6 +60,220 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 				   
 	protected $_cache = null;
 				   
+				   
+				   
+	/**
+	 * Implements interface INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_8
+	 * @param string|null $user
+	 * @return array  returns array of array($severity, $htmlMessage)
+	 */
+	public function getNotifications(string $user=null): array {
+		$notifications = array();
+		
+		if (is_null(OIDplus::getPluginByOid("1.3.6.1.4.1.37476.9000.108.19361.24196"))) { 
+			    $error = '';
+				$error = _L('The RDAP Server depends on the IO4 Plugin and its extensions');
+				$htmlmsg = 'Please install the IO4 Plugin into plugins/frdl/adminPages/io4/ from this repository: '
+					.'https://github.com/frdl/oidplus-io4-bridge-plugin (contact the site adminstrator to do it)!!!';
+				$error .= ': ' . $htmlmsg;		
+			$notifications[] = new \ViaThinkSoft\OIDplus\OIDplusNotification('ERR', $error);
+		}
+		
+		
+		if (OIDplus::db()->tableExists("###attributes")) {
+			    $error = '';
+				$error = _L('The table ###attributes is not used by the plugin anymore');
+				$htmlmsg = 'The RDAP-Plugin DB-Structure changed. If the table {prefix}_attributes is not needed by another plugin  '
+					.' you can delete it (or migrate if you have data in it what is not expected)!';
+				$error .= ': ' . $htmlmsg;		
+			$notifications[] = new \ViaThinkSoft\OIDplus\OIDplusNotification('WARN', $error);			
+		}
+		/*
+		//if ((!$user || ($user == 'admin')) && OIDplus::authUtils()->isAdminLoggedIn()) {
+			$error = '';
+			try {
+				$basepath =$this->rdapServer_configdir;
+				if (!is_dir($basepath)) {
+					mkdir($basepath, 0755, true);
+				} 
+				
+				if(!file_exists($this->rdapServer_bootfile)){
+					throw new OIDplusException(_L('RDAP Server Bootstrap File %1 does not exist. You have to run an initial setup of the RDAP server! This will be done automatically or if you register a sub-ra registries rdap server node (REGISTRAR).'
+				.'<br /><a href="https://oid.zone">OID-Connect Documentation</a>'								  
+												  ,
+												  $this->rdapServer_bootfile));
+				}
+					
+					//throw new OIDplusException(_L('Directory %1 is not writeable. Please check the permissions!', $basepath));
+			} catch (\Exception $e) {
+				$error = _L('The RDAP Server feature is not available or not setup');
+				$htmlmsg = $e instanceof OIDplusException ? $e->getHtmlMessage() : htmlentities($e->getMessage());
+				$error .= ': ' . $htmlmsg;
+			}
+			if ($error) {
+				$notifications[] = new \ViaThinkSoft\OIDplus\OIDplusNotification('WARN', $error);
+			}
+	//	}
+	*/
+		return $notifications;
+	}				   
+				   
+				   
+				   
+				   
+	/**
+	 * Implements interface INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_2
+	 * @param string $id
+	 * @param string $title
+	 * @param string $icon
+	 * @param string $text
+	 * @return void
+	 * @throws \ViaThinkSoft\OIDplus\OIDplusException
+	 */
+	public function modifyContent(string $id, string &$title, string &$icon, string &$text) {
+	    $payload = '<br /> <a href="'.OIDplus::webpath(__DIR__,OIDplus::PATH_RELATIVE)
+			.'rdap/rdap.php?query='.urlencode($id).'" class="gray_footer_font" target="_blank">'._L('RDAP').'</a>';
+
+		$text = str_replace('<!-- MARKER 6 -->', '<!-- MARKER 6 -->'.$payload, $text);
+	}
+
+	public function gui(string $id, array &$out, bool &$handled) {
+		if (explode('$',$id)[0] == 'oidplus:rdap') {
+			$handled = true;
+ 
+ 
+
+			$out['title'] = _L('RDAP Protocol (OID-Connect) / RDAP');
+	//	$out['icon'] = file_exists(__DIR__.'/img/main_icon.png') ? OIDplus::webpath(__DIR__,OIDplus::PATH_RELATIVE).'img/main_icon.png' : '';
+
+			$out['text']  = '<p>'._L('With the RDAP Protocol, you can query object information about an object/OID/WEID/ID and its registration information and authoritive RA info.').'</p>';
+
+
+		}
+	}	
+				   
+				   
+	
+	public function init($html = true) {
+		$this->rdapServer_configdir = __DIR__.\DIRECTORY_SEPARATOR.'rdap-server';
+		$this->rdapServer_bootfile = $this->rdapServer_configdir.\DIRECTORY_SEPARATOR.'bootstrap.oid.json';
+		
+	if (!OIDplus::db()->tableExists("###attr")) {
+			if (OIDplus::db()->getSlang()->id() == 'mysql') {
+				OIDplus::db()->query("CREATE TABLE ###attr ( `id` int(11) NOT NULL AUTO_INCREMENT, `oid` varchar(255) NOT NULL, `a_subject` varchar(255) NOT NULL, `a_verb` varchar(255) NOT NULL, `a_object` varchar(255) NOT NULL, `created` int(11) NOT NULL DEFAULT 0,  `expires` int(11) NOT NULL DEFAULT -1,  PRIMARY KEY(`id`), CONSTRAINT ucosv UNIQUE (oid,a_subject,a_verb,a_object) ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
+				$this->db_table_exists = true;
+			} else if (OIDplus::db()->getSlang()->id() == 'mssql') {
+				// We use nvarchar(225) instead of varchar(255), see https://github.com/frdl/oidplus-plugin-alternate-id-tracking/issues/18
+				// Unfortunately, we cannot use nvarchar(255), because we need two of them for the primary key, and an index must not be greater than 900 bytes in SQL Server.
+				// Therefore we can only use 225 Unicode characters instead of 255.
+				// It is very unlikely that someone has such giant identifiers. But if they do, then saveAltIdsForQuery() will reject the INSERT commands to avoid that an SQL Exception is thrown.
+				OIDplus::db()->query("CREATE TABLE ###attr (  [id] int(11) NOT NULL AUTO_INCREMENT, [oid] nvarchar(225) NOT NULL, [a_subject] nvarchar(225) NOT NULL, [a_verb] nvarchar(225), [a_object] nvarchar(225) NOT NULL,  [created] int(11) NOT NULL DEFAULT 0,  [expires] int(11) NOT NULL DEFAULT -1, CONSTRAINT [PK_###attr] PRIMARY KEY ( [id]  ) , CONSTRAINT [PK_###attributes] UNIQUE KEY CLUSTERED( [oid] ASC, [a_subject] ASC [a_verb] ASC [a_object] ASC ) )");
+				$this->db_table_exists = true;
+			} else if (OIDplus::db()->getSlang()->id() == 'oracle') {
+				// TODO: Implement Table Creation for this DBMS (see CREATE TABLE syntax at plugins/viathinksoft/sqlSlang/oracle/sql/*.sql)
+				$this->db_table_exists = false;
+			} else if (OIDplus::db()->getSlang()->id() == 'pgsql') {
+				// TODO: Implement Table Creation for this DBMS (see CREATE TABLE syntax at plugins/viathinksoft/sqlSlang/pgsql/sql/*.sql)
+				$this->db_table_exists = false;
+			} else if (OIDplus::db()->getSlang()->id() == 'access') {
+				// TODO: Implement Table Creation for this DBMS (see CREATE TABLE syntax at plugins/viathinksoft/sqlSlang/access/sql/*.sql)
+				$this->db_table_exists = false;
+			} else if (OIDplus::db()->getSlang()->id() == 'sqlite') {
+				// TODO: Implement Table Creation for this DBMS (see CREATE TABLE syntax at plugins/viathinksoft/sqlSlang/sqlite/sql/*.sql)
+				$this->db_table_exists = false;
+			} else if (OIDplus::db()->getSlang()->id() == 'firebird') {
+				// TODO: Implement Table Creation for this DBMS (see CREATE TABLE syntax at plugins/viathinksoft/sqlSlang/firebird/sql/*.sql)
+				$this->db_table_exists = false;
+			} else {
+				// DBMS not supported
+				$this->db_table_exists = false;
+			}
+		} else {
+			$this->db_table_exists = true;
+		}	
+		
+	
+		
+	if (!OIDplus::db()->tableExists("###attrlogstream")) {
+			if (OIDplus::db()->getSlang()->id() == 'mysql') {
+				OIDplus::db()->query("CREATE TABLE ###attrlogstream ( `expires` int(11) NOT NULL DEFAULT -1, `id_attribute` int(11) NOT NULL,  `created` int(11) NOT NULL DEFAULT 0,  `to` varchar(255) NOT NULL, `from` varchar(255) NOT NULL, `type` varchar(255) NOT NULL, `actor` varchar(255) NOT NULL, `note` varchar(255) NOT NULL, `a_value` text DEFAULT NULL,  PRIMARY KEY (`id_attribute`,  `type`, `actor`)  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
+				$this->db_table_exists = true;
+			} else if (OIDplus::db()->getSlang()->id() == 'mssql') {
+				// We use nvarchar(225) instead of varchar(255), see https://github.com/frdl/oidplus-plugin-alternate-id-tracking/issues/18
+				// Unfortunately, we cannot use nvarchar(255), because we need two of them for the primary key, and an index must not be greater than 900 bytes in SQL Server.
+				// Therefore we can only use 225 Unicode characters instead of 255.
+				// It is very unlikely that someone has such giant identifiers. But if they do, then saveAltIdsForQuery() will reject the INSERT commands to avoid that an SQL Exception is thrown.
+				OIDplus::db()->query("CREATE TABLE ###attrlogstream ( [expires] int(11) NOT NULL DEFAULT -1,  [id_attribute] int(11) NOT NULL,  [created] int(11) NOT NULL DEFAULT 0, [to] nvarchar(225) NOT NULL, [from] nvarchar(225) NOT NULL, [type] nvarchar(225), [actor] nvarchar(225) NOT NULL, [note] nvarchar(225) NOT NULL, [a_value] TEXT, CONSTRAINT [PK_###attrlogstream] PRIMARY KEY CLUSTERED( [id_attribute] ASC, [type] ASC,  [actor] ASC )  )");
+				$this->db_table_exists = true;
+			} else if (OIDplus::db()->getSlang()->id() == 'oracle') {
+				// TODO: Implement Table Creation for this DBMS (see CREATE TABLE syntax at plugins/viathinksoft/sqlSlang/oracle/sql/*.sql)
+				$this->db_table_exists = false;
+			} else if (OIDplus::db()->getSlang()->id() == 'pgsql') {
+				// TODO: Implement Table Creation for this DBMS (see CREATE TABLE syntax at plugins/viathinksoft/sqlSlang/pgsql/sql/*.sql)
+				$this->db_table_exists = false;
+			} else if (OIDplus::db()->getSlang()->id() == 'access') {
+				// TODO: Implement Table Creation for this DBMS (see CREATE TABLE syntax at plugins/viathinksoft/sqlSlang/access/sql/*.sql)
+				$this->db_table_exists = false;
+			} else if (OIDplus::db()->getSlang()->id() == 'sqlite') {
+				// TODO: Implement Table Creation for this DBMS (see CREATE TABLE syntax at plugins/viathinksoft/sqlSlang/sqlite/sql/*.sql)
+				$this->db_table_exists = false;
+			} else if (OIDplus::db()->getSlang()->id() == 'firebird') {
+				// TODO: Implement Table Creation for this DBMS (see CREATE TABLE syntax at plugins/viathinksoft/sqlSlang/firebird/sql/*.sql)
+				$this->db_table_exists = false;
+			} else {
+				// DBMS not supported
+				$this->db_table_exists = false;
+			}
+		} else {
+			$this->db_table_exists = true;
+		}			
+		
+		/*
+			OIDplus::config()->prepareConfigKey('FRDLWEB_OID_CONNECT_API_ROUTE',
+												'API Route for the OID-Connect API, e.g. "oid-connect" ',
+												'oid-connect', OIDplusConfig::PROTECTION_EDITABLE, function ($value) {
+		  
+			 	OIDplus::baseConfig()->setValue('FRDLWEB_OID_CONNECT_API_ROUTE', $value );
+		});		
+		*/
+		
+		OIDplus::config()->prepareConfigKey('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'The RDAP base uri to the RDAP -Module. Example: "rdap" or "oid-connect/rdap"', self::DEFAULT_RDAP_BASEPATH, OIDplusConfig::PROTECTION_EDITABLE, function ($value) {
+		  
+			 	OIDplus::baseConfig()->setValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', $value );
+		});		
+		
+	 
+$hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://rdap.frdlweb.de" or "https://rdap.frdl.de" or in near future: "https://rdap.webfan.de" or "https://rdap.weid.info"';
+		OIDplus::config()->prepareConfigKey('FRDLWEB_RDAP_FALLBACK_SERVER', $hint, self::DEFAULT_RDAP_FALLBACK_SERVER, OIDplusConfig::PROTECTION_EDITABLE, function ($value) use($hint) {
+			 
+			if(!in_array($value, [   
+				'https://rdap.webfan.de',
+				'https://rdap.frdlweb.de',	
+				'https://rdap.frdl.de', 
+				'https://rdap.weid.info',
+			])){
+				throw new OIDplusException($hint);
+			}
+			
+			OIDplus::baseConfig()->setValue('FRDLWEB_RDAP_FALLBACK_SERVER', $value );
+		});
+		 
+	  if(!class_exists(\Webfan\RDAP\Rdap::class)){
+		$io4Plugin = OIDplus::getPluginByOid("1.3.6.1.4.1.37476.9000.108.19361.24196");		         
+		if (!is_null($io4Plugin) && \is_callable([$io4Plugin,'getWebfat']) ) {
+		   $io4Plugin->getWebfat(true,false);	              
+		}else{
+			throw new OIDplusException(sprintf('You have to install the dependencies of the plugin package %s via composer OR you need the plugin %s to be installed in OIDplus and its remote-autoloader enabled. Read about how to use composer with OIDplus at: https://weid.info/plus/ .', 'https://github.com/frdl/oidplus-frdlweb-rdap', 'https://github.com/frdl/oidplus-io4-bridge-plugin'));
+		}
+	  }//!exists \Webfan\RDAP\Rdap::class
+		
+		
+	}	//init				   
+				   
+				   
+				   
+				   
+				   
 	protected function cache(?string $type = null, ?string $name = null){
 		if(null === $this->_cache){
 	    	$directory =  OIDplus::baseConfig()->getValue('RDAP_CACHE_DIRECTORY', OIDplus::localpath().'userdata/cache/' );
@@ -178,15 +392,7 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 							$unf[$ka] = $v;
 						}
 					}
-		 /* This SHOULD/MUST be work DYNAMICYLLY/PHPstan ???
-		          $io4Plugin = OIDplus::getPluginByOid("1.3.6.1.4.1.37476.9000.108.19361.24196");
-		         if (!is_null($io4Plugin) && \is_callable([$io4Plugin,'getWebfat']) ) {
-				      $io4Plugin->getWebfat(true,false);	
-					    $ext = \Wehowski\Helpers\ArrayHelper::unflatten($ext, '.', -1);
-               	}else{
-				    $ext = $this->unflatten($ext, '.', -1);
-				}
-			           */
+ 
 		            $ext = $this->unflatten($ext, '.', -1);
 		
 		           foreach($unf as $k => $v){ 
@@ -284,8 +490,8 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 		$xmlschemauri = OIDplus::webpath(__DIR__.'/attributes.xsd',OIDplus::PATH_ABSOLUTE_CANONICAL);
 
 								
-		$res = OIDplus::db()->query("select * from ###attributes where " .
-						                            "id = ? ORDER BY a_subject ASC, a_verb ASC, a_object ASC", array($id));
+		$res = OIDplus::db()->query("select * from ###attr where " .
+						                            "oid = ? ORDER BY a_subject ASC, a_verb ASC, a_object ASC", array($id));
 		
 		//$res->naturalSortByField('id');
 		while ($row = $res->fetch_object()) {
@@ -361,164 +567,7 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 	
 	}
 
-	/**
-	 * Implements interface INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_8
-	 * @param string|null $user
-	 * @return array  returns array of array($severity, $htmlMessage)
-	 */
-	public function getNotifications(string $user=null): array {
-		$notifications = array();
-		
-		if (is_null(OIDplus::getPluginByOid("1.3.6.1.4.1.37476.9000.108.19361.24196"))) { 
-			    $error = '';
-				$error = _L('The RDAP Server depends on the IO4 Plugin and its extensions');
-				$htmlmsg = 'Please install the IO4 Plugin into plugins/frdl/adminPages/io4/ from this repository: '
-					.'https://github.com/frdl/oidplus-io4-bridge-plugin (contact the site adminstrator to do it)!!!';
-				$error .= ': ' . $htmlmsg;		
-			$notifications[] = new \ViaThinkSoft\OIDplus\OIDplusNotification('ERR', $error);
-		}
-		
-		
-		//if ((!$user || ($user == 'admin')) && OIDplus::authUtils()->isAdminLoggedIn()) {
-			$error = '';
-			try {
-				$basepath =$this->rdapServer_configdir;
-				if (!is_dir($basepath)) {
-					mkdir($basepath, 0755, true);
-				} 
-				
-				if(!file_exists($this->rdapServer_bootfile)){
-					throw new OIDplusException(_L('RDAP Server Bootstrap File %1 does not exist. You have to run an initial setup of the RDAP server! This will be done automatically or if you register a sub-ra registries rdap server node (REGISTRAR).'
-				.'<br /><a href="https://oid.zone">OID-Connect Documentation</a>'								  
-												  ,
-												  $this->rdapServer_bootfile));
-				}
-					
-					//throw new OIDplusException(_L('Directory %1 is not writeable. Please check the permissions!', $basepath));
-			} catch (\Exception $e) {
-				$error = _L('The RDAP Server feature is not available or not setup');
-				$htmlmsg = $e instanceof OIDplusException ? $e->getHtmlMessage() : htmlentities($e->getMessage());
-				$error .= ': ' . $htmlmsg;
-			}
-			if ($error) {
-				$notifications[] = new \ViaThinkSoft\OIDplus\OIDplusNotification('WARN', $error);
-			}
-	//	}
-		return $notifications;
-	}				   
-				   
-				   
-				   
-				   
-	/**
-	 * Implements interface INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_2
-	 * @param string $id
-	 * @param string $title
-	 * @param string $icon
-	 * @param string $text
-	 * @return void
-	 * @throws \ViaThinkSoft\OIDplus\OIDplusException
-	 */
-	public function modifyContent(string $id, string &$title, string &$icon, string &$text) {
-	    $payload = '<br /> <a href="'.OIDplus::webpath(__DIR__,OIDplus::PATH_RELATIVE)
-			.'rdap/rdap.php?query='.urlencode($id).'" class="gray_footer_font" target="_blank">'._L('RDAP').'</a>';
 
-		$text = str_replace('<!-- MARKER 6 -->', '<!-- MARKER 6 -->'.$payload, $text);
-	}
-
-	public function gui(string $id, array &$out, bool &$handled) {
-		if (explode('$',$id)[0] == 'oidplus:rdap') {
-			$handled = true;
- 
- 
-
-			$out['title'] = _L('RDAP Protocol (OID-Connect) / RDAP');
-	//	$out['icon'] = file_exists(__DIR__.'/img/main_icon.png') ? OIDplus::webpath(__DIR__,OIDplus::PATH_RELATIVE).'img/main_icon.png' : '';
-
-			$out['text']  = '<p>'._L('With the RDAP Protocol, you can query object information about an object/OID/WEID/ID and its registration information and authoritive RA info.').'</p>';
-
-
-		}
-	}	
-	
-	public function init($html = true) {
-		$this->rdapServer_configdir = __DIR__.\DIRECTORY_SEPARATOR.'rdap-server';
-		$this->rdapServer_bootfile = $this->rdapServer_configdir.\DIRECTORY_SEPARATOR.'bootstrap.oid.json';
-		
-	if (!OIDplus::db()->tableExists("###attributes")) {
-			if (OIDplus::db()->getSlang()->id() == 'mysql') {
-				OIDplus::db()->query("CREATE TABLE ###attributes ( `id` int(11) NOT NULL AUTO_INCREMENT, `oid` varchar(255) NOT NULL, `a_subject` varchar(255) NOT NULL, `a_verb` varchar(255) NOT NULL, `a_object` varchar(255) NOT NULL, `a_value` text DEFAULT NULL, PRIMARY KEY(`id`), CONSTRAINT ucosv UNIQUE (oid,a_subject,a_verb,a_object) ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
-				$this->db_table_exists = true;
-			} else if (OIDplus::db()->getSlang()->id() == 'mssql') {
-				// We use nvarchar(225) instead of varchar(255), see https://github.com/frdl/oidplus-plugin-alternate-id-tracking/issues/18
-				// Unfortunately, we cannot use nvarchar(255), because we need two of them for the primary key, and an index must not be greater than 900 bytes in SQL Server.
-				// Therefore we can only use 225 Unicode characters instead of 255.
-				// It is very unlikely that someone has such giant identifiers. But if they do, then saveAltIdsForQuery() will reject the INSERT commands to avoid that an SQL Exception is thrown.
-				OIDplus::db()->query("CREATE TABLE ###attributes (  [id] int(11) NOT NULL AUTO_INCREMENT, [oid] nvarchar(225) NOT NULL, [a_subject] nvarchar(225) NOT NULL, [a_verb] nvarchar(225), [a_object] nvarchar(225) NOT NULL, [a_value] TEXT, CONSTRAINT [PK_###attributes] PRIMARY KEY ( [id]  ) , CONSTRAINT [PK_###attributes] UNIQUE KEY CLUSTERED( [oid] ASC, [a_subject] ASC [a_verb] ASC [a_object] ASC ) )");
-				$this->db_table_exists = true;
-			} else if (OIDplus::db()->getSlang()->id() == 'oracle') {
-				// TODO: Implement Table Creation for this DBMS (see CREATE TABLE syntax at plugins/viathinksoft/sqlSlang/oracle/sql/*.sql)
-				$this->db_table_exists = false;
-			} else if (OIDplus::db()->getSlang()->id() == 'pgsql') {
-				// TODO: Implement Table Creation for this DBMS (see CREATE TABLE syntax at plugins/viathinksoft/sqlSlang/pgsql/sql/*.sql)
-				$this->db_table_exists = false;
-			} else if (OIDplus::db()->getSlang()->id() == 'access') {
-				// TODO: Implement Table Creation for this DBMS (see CREATE TABLE syntax at plugins/viathinksoft/sqlSlang/access/sql/*.sql)
-				$this->db_table_exists = false;
-			} else if (OIDplus::db()->getSlang()->id() == 'sqlite') {
-				// TODO: Implement Table Creation for this DBMS (see CREATE TABLE syntax at plugins/viathinksoft/sqlSlang/sqlite/sql/*.sql)
-				$this->db_table_exists = false;
-			} else if (OIDplus::db()->getSlang()->id() == 'firebird') {
-				// TODO: Implement Table Creation for this DBMS (see CREATE TABLE syntax at plugins/viathinksoft/sqlSlang/firebird/sql/*.sql)
-				$this->db_table_exists = false;
-			} else {
-				// DBMS not supported
-				$this->db_table_exists = false;
-			}
-		} else {
-			$this->db_table_exists = true;
-		}	
-		
-		
-		
-			OIDplus::config()->prepareConfigKey('FRDLWEB_OID_CONNECT_API_ROUTE',
-												'API Route for the OID-Connect API, e.g. "oid-connect" ',
-												'oid-connect', OIDplusConfig::PROTECTION_EDITABLE, function ($value) {
-		  
-			 	OIDplus::baseConfig()->setValue('FRDLWEB_OID_CONNECT_API_ROUTE', $value );
-		});		
-		
-		
-		OIDplus::config()->prepareConfigKey('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'The RDAP base uri to the RDAP -Module. Example: "rdap" or "oid-connect/rdap"', self::DEFAULT_RDAP_BASEPATH, OIDplusConfig::PROTECTION_EDITABLE, function ($value) {
-		  
-			 	OIDplus::baseConfig()->setValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', $value );
-		});		
-		
-	 
-$hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://rdap.frdlweb.de" or "https://rdap.frdl.de" or in near future: "https://rdap.webfan.de" or "https://rdap.weid.info"';
-		OIDplus::config()->prepareConfigKey('FRDLWEB_RDAP_FALLBACK_SERVER', $hint, self::DEFAULT_RDAP_FALLBACK_SERVER, OIDplusConfig::PROTECTION_EDITABLE, function ($value) use($hint) {
-			 
-			if(!in_array($value, [   
-				'https://rdap.webfan.de',
-				'https://rdap.frdlweb.de',	
-				'https://rdap.frdl.de', 
-				'https://rdap.weid.info',
-			])){
-				throw new OIDplusException($hint);
-			}
-			
-			OIDplus::baseConfig()->setValue('FRDLWEB_RDAP_FALLBACK_SERVER', $value );
-		});
-		 
-	  if(!class_exists(\Webfan\RDAP\Rdap::class)){
-		$io4Plugin = OIDplus::getPluginByOid("1.3.6.1.4.1.37476.9000.108.19361.24196");		         
-		if (!is_null($io4Plugin) && \is_callable([$io4Plugin,'getWebfat']) ) {
-		   $io4Plugin->getWebfat(true,false);	              
-		}else{
-			throw new OIDplusException(sprintf('You have to install the dependencies of the plugin package %s via composer OR you need the plugin %s to be installed in OIDplus and its remote-autoloader enabled. Read about how to use composer with OIDplus at: https://weid.info/plus/ .', 'https://github.com/frdl/oidplus-frdlweb-rdap', 'https://github.com/frdl/oidplus-io4-bridge-plugin'));
-		}
-	  }//!exists \Webfan\RDAP\Rdap::class
-	}	
 	
 	
 				   
@@ -717,6 +766,16 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 	 * @return bool
 	 * @throws OIDplusException
 	 */
+	
+	protected function handle_wrapBootstrapServices( )  {
+	     $services = $this->wrapBootstrapServices('oid');
+			     http_response_code(200);
+           		OIDplus::invoke_shutdown();
+		    	@header('Content-Type:application/json; charset=utf-8');
+			    echo json_encode($services);
+			    die();			
+	}
+				   
 	public function handle404(string $request): bool {
 		$requestOidplus = $request;
 		$request = trim($_SERVER['REQUEST_URI'],'/');
@@ -724,12 +783,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 		[$ns, $id] = explode('/', $request, 2);
 		
 		if('bootstrap'===$ns && 'oid' === $id){
-		     $services = $this->wrapBootstrapServices('oid');
-			     http_response_code(200);
-           		OIDplus::invoke_shutdown();
-		    	@header('Content-Type:application/json; charset=utf-8');
-			    echo json_encode($services);
-			    die();			
+		   return $this->handle_wrapBootstrapServices( );
 		}
 		
 		foreach (OIDplus::getEnabledObjectTypes() as $ot) {
@@ -751,10 +805,13 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 		if (str_starts_with($requestOidplus, OIDplus::baseConfig()->getValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'rdap').'/')) {
 			$request
 				= substr($_SERVER['REQUEST_URI'], strlen(OIDplus::baseConfig()->getValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'rdap').'/'));
-			$request = trim($request,'/');
+			$request = trim($request,'/');			
 			[$ns, $id] = explode('/', $request, 2);
-			
 					
+			if('bootstrap'===$ns && 'oid' === $id){		  
+				return $this->handle_wrapBootstrapServices( );	
+			}
+			
 			$obj = OIDplusObject::findFitting($id);
 				
 			if (!$obj) {
@@ -998,7 +1055,8 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 				   
 				
 				   
-		public function tree(array &$json, string $ra_email=null, bool $nonjs=false, string $req_goto=''): bool {
+		
+	public function tree(array &$json, string $ra_email=null, bool $nonjs=false, string $req_goto=''): bool {
 			return false;
 	}
 
@@ -1023,8 +1081,18 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 	 */
 	public function afterObjectDelete(string $id) {
 		// Delete the attachment folder including all files in it (note: Subfolders are not possible)
-		OIDplus::db()->query("delete from ###attributes where oid = ?", array($id));
+//		OIDplus::db()->query("delete from ###attributes where oid = ?", array($id));
 		//unlink($this->rdapServer_bootfile);
+										
+		$res = OIDplus::db()->query("select * from ###attr where " .
+						                            "oid = ? ORDER BY a_subject ASC, a_verb ASC, a_object ASC", array($id));
+		
+		//$res->naturalSortByField('id');
+		while ($row = $res->fetch_object()) {
+			 OIDplus::db()->query("delete from ###attrlogstream where id_attribute = ?", array($row->id));			
+		}
+		
+		OIDplus::db()->query("delete from ###attr where oid = ?", array($id));
 	}
 
 	/**
