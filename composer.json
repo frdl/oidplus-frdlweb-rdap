@@ -10,14 +10,15 @@
     "extra" : {
         "installer-name" : "1276945_rdap"
     },
-	"suggest": {
+    "suggest": {
 		"danielmarschall/oidplus": "The main project, this must be your root composer.json project!",
 		"frdl/oiplus-composer-plugin": "Composer Plugin for OIDplus Installations, MUST be required first in the root project, enables OIDplus composer bridges/plugins/admin-gui...",
-		"frdl/oidplus-io4-bridge-plugin" : "Composer and Bridges Manager",
-	  "doctrine/cache" : "caching tools"
+		"frdl/oidplus-io4-bridge-plugin" : "Composer and Bridges Manager",	  
+		"doctrine/cache" : "caching tools"
 	},
     "require" : {
         "frdl/oidplus-io4-bridge-plugin" : "*",
-        "frdl/oid-connect-rdap" : "*"
+        "frdl/oid-connect-rdap" : "*",
+	"symfony/cache" : "*"
     }
 }
