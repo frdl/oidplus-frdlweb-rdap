@@ -28,10 +28,14 @@ use ViaThinkSoft\OIDplus\OIDplusObjectTypePlugin;
 use ViaThinkSoft\OIDplus\OIDplusPagePluginPublic;
 use ViaThinkSoft\OIDplus\OIDplusObject;
 use ViaThinkSoft\OIDplus\OIDplusException;
-use ViaThinkSoft\OIDplus\OIDplusOID;
+use ViaThinkSoft\OIDplus\OIDplusOid;
 use ViaThinkSoft\OIDplus\OIDplusRA;
 use ViaThinkSoft\OIDplus\OIDplusNaturalSortedQueryResult;
 use ViaThinkSoft\OIDplus\OIDplusOIDIP;
+
+
+use Symfony\Component\Cache\Adapter\FilesystemAdapter;
+
 // phpcs:disable PSR1.Files.SideEffects
 \defined('INSIDE_OIDPLUS') or die;
 // phpcs:enable PSR1.Files.SideEffects
@@ -47,11 +51,43 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 {
      const DEFAULT_RDAP_BASEPATH = 'rdap';
 	 const DEFAULT_RDAP_FALLBACK_SERVER = 'https://rdap.frdlweb.de';
+	 const CACHE_VERSION = '24.0.0';
+	 const INSTANCES_URL = 'https://hosted.oidplus.com/viathinksoft/plugins/viathinksoft/publicPages/100_whois/whois/webwhois.php?query=oid%3A1.3.6.1.4.1.37476.30.9$format=json';
 				   
 	protected $rdapServer_configdir;
 	protected $rdapServer_bootfile;		
-	
+	protected $db_table_exists = false;
 				   
+	protected $_cache = null;
+				   
+	protected function cache(?string $type = null, ?string $name = null){
+		if(null === $this->_cache){
+	    	$directory =  OIDplus::baseConfig()->getValue('RDAP_CACHE_DIRECTORY', OIDplus::localpath().'userdata/cache/' );
+			$namespace = 'rdap';
+			//$defaultLifetime = 24 * 60 * 60;
+			$defaultLifetime = 8 * 60;
+			$this->_cache = new FilesystemAdapter(    
+				// a string used as the subdirectory of the root cache directory, where cache   
+				// items will be stored   
+				$namespace,				
+   
+				// the default lifetime (in seconds) for cache items that do not define their   
+				// own lifetime, with a value 0 causing items to be stored indefinitely (i.e.   
+				// until the files are deleted)   
+				$defaultLifetime,  
+				// the main cache directory (the application needs read-write permissions on it)  
+				// if none is specified, a directory is created inside the system temporary directory   
+				$directory
+			);			
+		}
+		//$item = $cache->getItem($this->getCacheKey('oidplus', 'instances'));
+		 if(is_string($type) && is_null($name) ){
+			 return $this->_cache->getItem($type);
+		 }elseif(is_string($type) && is_string($name) ){
+			return $this->_cache->getItem($this->getCacheKey($type, $name));
+		 }
+		return $this->_cache;
+	}
 				   
 	public function rdapExtensions($out, $namespace, $id, $obj, $query) : array {
 		$ns = $namespace;
@@ -142,15 +178,17 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 							$unf[$ka] = $v;
 						}
 					}
-		 
+		 /* This SHOULD/MUST be work DYNAMICYLLY/PHPstan ???
 		          $io4Plugin = OIDplus::getPluginByOid("1.3.6.1.4.1.37476.9000.108.19361.24196");
-		         if (!is_null($io4Plugin)) {
+		         if (!is_null($io4Plugin) && \is_callable([$io4Plugin,'getWebfat']) ) {
 				      $io4Plugin->getWebfat(true,false);	
 					    $ext = \Wehowski\Helpers\ArrayHelper::unflatten($ext, '.', -1);
                	}else{
 				    $ext = $this->unflatten($ext, '.', -1);
 				}
-			           
+			           */
+		            $ext = $this->unflatten($ext, '.', -1);
+		
 		           foreach($unf as $k => $v){ 
 							$ext[$k] = $v; 
 					}	        		            
@@ -206,7 +244,7 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
     {
         $output = [];
         foreach ($arr as $key => $value) {
-        if(($parts = @preg_split($delimiter, $key, null)) === false){
+        if(($parts = @preg_split($delimiter, $key, -1)) === false){
            //pattern is broken
           $parts = ($depth>0)?explode($delimiter, $key, $depth):explode($delimiter, $key);
            }else{
@@ -284,14 +322,7 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 				'value' => $row->a_value
 			);
 			
-
-			$out[] = array(
-				'xmlns' => $xmlns,
-				'xmlschema' => $xmlschema,
-				'xmlschemauri' => $xmlschemauri,
-				'name' => 'rdap-redirector',
-				'value' =>null,
-			);			
+ 	
 			
 		}
 		/*  rdap-redirector
@@ -326,7 +357,9 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 	 * @param array $out
 	 * @return void
 	 */
-	public function whoisRaAttributes(string $email, array &$out) {}
+	public function whoisRaAttributes(string $email, array &$out) {
+	
+	}
 
 	/**
 	 * Implements interface INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_8
@@ -463,7 +496,7 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 		
 	 
 $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://rdap.frdlweb.de" or "https://rdap.frdl.de" or in near future: "https://rdap.webfan.de" or "https://rdap.weid.info"';
-		OIDplus::config()->prepareConfigKey('FRDLWEB_RDAP_FALLBACK_SERVER', $hint, self::DEFAULT_RDAP_FALLBACK_SERVER, OIDplusConfig::PROTECTION_EDITABLE, function ($value) {
+		OIDplus::config()->prepareConfigKey('FRDLWEB_RDAP_FALLBACK_SERVER', $hint, self::DEFAULT_RDAP_FALLBACK_SERVER, OIDplusConfig::PROTECTION_EDITABLE, function ($value) use($hint) {
 			 
 			if(!in_array($value, [   
 				'https://rdap.webfan.de',
@@ -477,6 +510,14 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 			OIDplus::baseConfig()->setValue('FRDLWEB_RDAP_FALLBACK_SERVER', $value );
 		});
 		 
+	  if(!class_exists(\Webfan\RDAP\Rdap::class)){
+		$io4Plugin = OIDplus::getPluginByOid("1.3.6.1.4.1.37476.9000.108.19361.24196");		         
+		if (!is_null($io4Plugin) && \is_callable([$io4Plugin,'getWebfat']) ) {
+		   $io4Plugin->getWebfat(true,false);	              
+		}else{
+			throw new OIDplusException(sprintf('You have to install the dependencies of the plugin package %s via composer OR you need the plugin %s to be installed in OIDplus and its remote-autoloader enabled. Read about how to use composer with OIDplus at: https://weid.info/plus/ .', 'https://github.com/frdl/oidplus-frdlweb-rdap', 'https://github.com/frdl/oidplus-io4-bridge-plugin'));
+		}
+	  }//!exists \Webfan\RDAP\Rdap::class
 	}	
 	
 	
@@ -486,6 +527,177 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 		return OIDplus::webpath().OIDplus::baseConfig()->getValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'rdap').'/';
 	}
 				   
+
+
+		
+	public function getCacheKey($type, $name){
+		return 'rdap.25-'.strlen($type).'.'.self::CACHE_VERSION.'-'. __FILE__ .'-'
+			.sha1($name).'l'.strlen($name).'-'.sha1($type);
+	}		
+				   
+	public function getOIDplusInstances(){
+	    $cache= $this->cache();
+		//$item = $cache->getItem($this->getCacheKey('oidplus', 'instances'));
+		$item = $this->cache('oidplus', 'instances');
+		if (!$item->isHit()) {   
+		    $item->expiresAfter(10 * 60);
+			$res = []; 
+			 @set_time_limit(intval(ini_get('max_execution_time')) + 90); 
+	         $inst=json_decode(file_get_contents(self::INSTANCES_URL));
+			 $subs = $inst->oidip->objectSection->subordinate;
+			 foreach($subs as $sub){
+				 $sub=explode(' ', $sub);
+				 $sub=$sub[0]; 
+			     @set_time_limit(intval(ini_get('max_execution_time')) + 90); 
+				 try{
+					 
+					 $itemSub = $this->cache('oidplus', 'instance_'.$sub);
+							
+					 if (!$itemSub->isHit()) {   
+		                 $itemSub->expiresAfter(3 * 60 * 60); 
+				 $instanceInfo = json_decode(file_get_contents('https://hosted.oidplus.com/viathinksoft/plugins/viathinksoft/publicPages/100_whois/whois/webwhois.php?query='.urlencode($sub).'$format=json'));
+					 
+					 
+					  $description = $instanceInfo->oidip->objectSection->description;
+							      $registryName = $instanceInfo->oidip->objectSection->name;							
+									preg_match("/System\sID\:\d\sLast\sknown\sURL\:([^\s]+)\s/", $description, $matches);
+					 if(!isset($matches[1])){
+						 preg_match("/URL\:([^\s]+)\s/", $description, $matches);
+					 }
+									$url = $matches[1];
+						 
+						 				  $headers = @get_headers($url);                
+				                          $exists = (bool) strpos($headers[0], '200'); 
+						 
+						 $resultSub=[
+					        'registryName' => $registryName,
+					     //  'description' => $description,
+					       'url' => $url,
+					      'id'=>$sub,
+					      'oid'=>  str_replace('oid:', '', $instanceInfo->oidip->objectSection->{'canonical-identifier'}),
+						  'available'=>$exists,
+				  	     ];			
+						 
+		                 $itemSub->set($resultSub);
+			             $cache->save($itemSub);	
+					 }//itemSub !hit
+					 
+					 $r = $itemSub->get();
+			    	$res['oid:'.$r['oid']]=$r;					 
+					 
+				 }catch(\Exception $e){	
+				
+					 continue;							
+				 }
+
+			 }
+			
+		//	$result = json_encode($res);
+			ksort($res);
+			$res = array_values($res);
+			
+			$result = $res;
+			$item->set($result);
+			$cache->save($item);			
+		}
+		//$Instances = json_decode($item->get());
+		$Instances = $item->get();
+		//shuffle($Instances);
+		return $Instances;
+	}				   
+				   
+				   
+				   
+	public function rdapBootstrap_oid_services(array $out) : array {
+	    foreach($this->getOIDplusInstances() as $instance){
+			if(!isset($out[$instance['url']])){
+				$out[$instance['url']] = [];
+			}
+			if(!isset($out[$instance['url']][0])){
+				$out[$instance['url']][0] = [];
+			}		
+			if(!isset($out[$instance['url']][1])){
+				$out[$instance['url']][1] = [];
+			}	
+			
+			if (!in_array($instance['url'], $out[$instance['url']][1])) {   
+                $out[$instance['url']][1][]=$instance['url'];
+			}  
+									
+			if (!in_array($instance['oid'], $out[$instance['url']][0])) {   
+                $out[$instance['url']][0][]=$instance['oid'];
+			}      
+		}		
+		return $out;
+	}
+	
+
+	
+	public function rdapBootstrapServices($namespace) : array {
+	    $cache= $this->cache();
+	//	$item = $cache->getItem($this->getCacheKey('rdapBootstrapServices', 'all-in-instance'));
+		$item = $this->cache('rdapBootstrapServices', 'all-in-instance-services');
+		if (!$item->isHit()) {   
+		    $item->expiresAfter(3 * 60);	
+		
+		     $out = [];
+		foreach(OIDplus::getAllPlugins() as $pkey => $plugin){
+			if(method_exists($plugin, 'rdapBootstrap_'.$namespace.'_services')){
+				$out = \call_user_func_array([$plugin, 'rdapBootstrap_'.$namespace.'_services'], [$out]);
+			}
+		}
+				
+			$result = array_values($out);
+			$item->set($result);
+			$cache->save($item);			
+		}
+		//$Instances = json_decode($item->get());
+		$out = $item->get();	
+		return $out;
+	}			   
+	
+				   
+	public function rdapBootstrapRootServices($namespace) : array {
+	    $cache= $this->cache();
+		//$item = $cache->getItem($this->getCacheKey('rdapBootstrapServices', 'all-root-instance'));
+		$item = $this->cache('rdapBootstrapServices', 'all-root-wrap-instance');
+		if (!$item->isHit()) {   
+		    $item->expiresAfter(3 * 60);	
+		 
+			  $client = new \Webfan\RDAP\Rdap($namespace);
+			  $client = $client->addService($namespace, $this->rdapBootstrapServices($namespace));
+			
+			  $result = $client->dumpServices($protocol, true, true);	
+			 
+			$item->set($result);
+			$cache->save($item);			
+		}
+		//$Instances = json_decode($item->get());
+		$out = $item->get();	
+		return $out;
+	}						   
+				   
+	
+	public function wrapBootstrapServices($namespace) : array {
+	    $cache= $this->cache();
+		//$item = $cache->getItem($this->getCacheKey('rdapBootstrapServices', 'all-root-instance'));
+		$item = $this->cache('rdapBootstrapServices', 'all-in-wrap-services');
+		if (!$item->isHit()) {   
+		    $item->expiresAfter(3 * 60);	
+		 
+			  $client = new \Webfan\RDAP\Rdap($namespace);
+			  $client = $client->addService($namespace, $this->rdapBootstrapServices($namespace));
+			
+			  $result = $client->dumpServices($protocol, false, true);	
+			 
+			$item->set($result);
+			$cache->save($item);			
+		}
+		//$Instances = json_decode($item->get());
+		$out = $item->get();	
+		return $out;
+	}						   
+				   
 				   
 	protected function negotiateResponse(array $o, string $out_type){
 	  //$out['redirect_with_content']	
@@ -493,7 +705,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 			     if(isset($o['redirect_with_content'])){
 					 $url = $o['redirect_with_content'];
 					 unset($o['redirect_with_content']);
-					 header('Location: '.$url, 302);
+					 header('Location: '.$url);
 				 }
 				 header('Content-Type:'.$out_type);		
 				 echo json_encode($o);		
@@ -509,23 +721,34 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 		$requestOidplus = $request;
 		$request = trim($_SERVER['REQUEST_URI'],'/');
 		$magicLink = false;
-				  
+		[$ns, $id] = explode('/', $request, 2);
+		
+		if('bootstrap'===$ns && 'oid' === $id){
+		     $services = $this->wrapBootstrapServices('oid');
+			     http_response_code(200);
+           		OIDplus::invoke_shutdown();
+		    	@header('Content-Type:application/json; charset=utf-8');
+			    echo json_encode($services);
+			    die();			
+		}
+		
 		foreach (OIDplus::getEnabledObjectTypes() as $ot) {
 				if (str_starts_with($request, $ot::ns().'/') || str_starts_with($requestOidplus, $ot::ns().'/') ) {
 					$magicLink = true;
 					break;
 				}
 		}	
-		if($magicLink && !str_starts_with($request, OIDplus::baseConfig()->getValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'rdap').'/')) {
+		if($magicLink
+		   && !str_starts_with($requestOidplus, OIDplus::baseConfig()->getValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'rdap').'/')) {
 			$request = rtrim(OIDplus::baseConfig()->getValue('CANONICAL_SYSTEM_URL'), '/ ')
 				.'/'
-				.trim(OIDplus::baseConfig()->getValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'rdap'), '/ ').'/'.$request;
-	//	die($request.'<br />'.$requestOidplus.'<br />'.$_SERVER['REQUEST_URI']);
-			header('Location: '.$request, 302);
+				.trim(OIDplus::baseConfig()->getValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'rdap'), '/ ').'/'.$ns.'/'.$id;
+	 	 
+			header('Location: '.$request);
 			die('<a href="'.$request.'">'.$request.'</a>');
 		}
 		
-		if (str_starts_with($request, OIDplus::baseConfig()->getValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'rdap').'/')) {
+		if (str_starts_with($requestOidplus, OIDplus::baseConfig()->getValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'rdap').'/')) {
 			$request
 				= substr($_SERVER['REQUEST_URI'], strlen(OIDplus::baseConfig()->getValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'rdap').'/'));
 			$request = trim($request,'/');
@@ -570,11 +793,8 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 		}
 		
 		return false;
-	}
-
-	
-	
-	
+	}				   
+				   
 		public function restApiInfo(string $kind='html'): string {
 			$bPath = OIDplus::baseConfig()->getValue('FRDLWEB_OID_CONNECT_API_ROUTE', 'oid-connect');
 		if ($kind === 'html') {
@@ -588,8 +808,52 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 						'mixed...'
 					]
 				],
+		 
+				_L('@ Get RDAP for an OID') => [
+					'<b>GET</b> '.OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL)
+					    .OIDplus::baseConfig()->getValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'rdap')
+					   .'/<abbr title="'._L('e.g. %1', '@/oid:2.999').'">[id]</abbr>',
+					_L('Input parameters') => [
+						'<i>'._L('None').'</i>'
+					],
+					_L('Output parameters') => [
+						'mixed...'
+					]
+				],
 				
 	
+				_L('@ Get DATA for Bootstrap RDAP OID Services of this node') => [
+					'<b>GET</b> '.OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL).'rest/v1/bootstrap/services/oid.json',
+					_L('Input parameters') => [
+						'<i>'._L('None').'</i>'
+					],
+					_L('Output parameters') => [
+						'array'
+					]
+				],
+				
+				_L('@ Get WRAP for Bootstrap RDAP OID Services') => [
+					'<b>GET</b> '.OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL)
+					    .OIDplus::baseConfig()->getValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'rdap')
+					   .'/bootstrap/oid',
+					_L('Input parameters') => [
+						'<i>'._L('None').'</i>'
+					],
+					_L('Output parameters') => [
+						'array'
+					]
+				],				
+	
+				_L('@ Get DATA for Bootstrap RDAP OID Services') => [
+					'<b>GET</b> '.OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL).'rest/v1/bootstrap/root/oid.json',
+					_L('Input parameters') => [
+						'<i>'._L('None').'</i>'
+					],
+					_L('Output parameters') => [
+						'array'
+					]
+				],	
+ 
 			];
 			return array_to_html_ul_li($struct);
 		} else {
@@ -601,17 +865,35 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 	
 
 
-	public function restApiCall(string $requestMethod, string $endpoint, array $json_in) {
-		 
-		if (str_starts_with($endpoint, OIDplus::baseConfig()->getValue('FRDLWEB_OID_CONNECT_API_ROUTE', 'oid-connect').'/')) {
+	public function restApiCall(string $requestMethod, string $endpoint, array $json_in) : array|false {
+		if('bootstrap/services/oid.json' === $endpoint ){
+			     $services = $this->rdapBootstrapServices('oid');
+			     http_response_code(200);
+           		OIDplus::invoke_shutdown();
+		    	@header('Content-Type:application/json; charset=utf-8');
+			    echo json_encode([
+			      'code'=>200,
+			      'message'=>'Bootstrap RDAP OID Services of this node',
+			      'endpoint'=>$endpoint,
+			      'method'=>$requestMethod,
+			      'services'=>$services, 
+			    ]);
+			    die();
+		}elseif('bootstrap/root/oid.json' === $endpoint ){
+			     $services = $this->rdapBootstrapRootServices('oid');
+			     http_response_code(200);
+           		OIDplus::invoke_shutdown();
+		    	@header('Content-Type:application/json; charset=utf-8');
+			    echo json_encode($services);
+			    die();
+		}elseif (str_starts_with($endpoint, OIDplus::baseConfig()->getValue('FRDLWEB_OID_CONNECT_API_ROUTE', 'oid-connect').'/')) {
 			$id = substr($endpoint, strlen(OIDplus::baseConfig()->getValue('FRDLWEB_OID_CONNECT_API_ROUTE', 'oid-connect').'/'));
 			$obj = OIDplusObject::findFitting($id);
 				
 			if (!$obj) {
 				$obj = OIDplusObject::parse($id);
 			}
-			/*	*/
-				
+			
 	    	if (!$obj) {
               http_response_code(404);
            //   throw new OIDplusException(_L('REST endpoint not found'), null, 404);
@@ -628,7 +910,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 			}
 			
 			if('POST' === $requestMethod){
-				 if (!$obj->userHasReadRights() && $obj->isConfidential()){    		
+				 if (!$obj->userHasParentalWriteRights()){    		
     		        throw new OIDplusException('Insufficient authorization to write information to this object.', null, 401);
 		         }	
 		         
@@ -648,7 +930,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 		         
 		         
 			}elseif('GET' === $requestMethod){
-				 if (!$obj->userHasReadRights() && $obj->isConfidential()){    		
+				 if (!$obj->userHasReadRights()){    		
     		        throw new OIDplusException('Insufficient authorization to read information about this object.', null, 401);
 		         }	
 		         
@@ -716,9 +998,8 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 				   
 				
 				   
-		
-	public function tree(array &$json, string $ra_email=null, bool $nonjs=false, string $req_goto=''): bool {
-			return false;		
+		public function tree(array &$json, string $ra_email=null, bool $nonjs=false, string $req_goto=''): bool {
+			return false;
 	}
 
 	/**
