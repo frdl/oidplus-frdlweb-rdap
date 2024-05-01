@@ -14,7 +14,7 @@
 		"danielmarschall/oidplus": "The main project, this must be your root composer.json project!",
 		"frdl/oiplus-composer-plugin": "Composer Plugin for OIDplus Installations, MUST be required first in the root project, enables OIDplus composer bridges/plugins/admin-gui...",
 		"frdl/oidplus-io4-bridge-plugin" : "Composer and Bridges Manager",
-	    "frdl/oidplus-rdap-service-object-type-plugin" : "Plugin to manage an authoritive tree of RDAP (Boot-/Root-)-Servers and delegations to sub-RAs."
+	  "doctrine/cache" : "caching tools"
 	},
     "require" : {
         "frdl/oidplus-io4-bridge-plugin" : "*",
