@@ -60,7 +60,8 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 				   
 	protected $_cache = null;
 				   
-				   
+				 
+		   
 				   
 	/**
 	 * Implements interface INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_8
@@ -69,10 +70,21 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 	 */
 	public function getNotifications(string $user=null): array {
 		$notifications = array();
+			
+		$rdapPlugin = OIDplus::getPluginByOid("1.3.6.1.4.1.37476.9000.108.1276945.1654921702");		         
+		if (is_null($rdapPlugin)   ) {
+		// throw new OIDplusException(sprintf('You have to install the %s plugin!', '1.3.6.1.4.1.37476.9000.108.1276945.1654921702'));          			    $error = '';
+				$error = _L('The RDAP Server depends on the RDAP ObjectType Plugin!');
+				$htmlmsg = 'Please install the Plugin from composer OR into plugins/frdl/objectTypes/rdap/ from this repository: '
+					.'https://github.com/frdl/oidplus-rdap-service-object-type-plugin (contact the site adminstrator to do it)!!!';
+				$error .= ': ' . $htmlmsg;		
+			$notifications[] = new \ViaThinkSoft\OIDplus\OIDplusNotification('ERR', $error);  
+		} 	
+		
 		
 		if (is_null(OIDplus::getPluginByOid("1.3.6.1.4.1.37476.9000.108.19361.24196"))) { 
 			    $error = '';
-				$error = _L('The RDAP Server depends on the IO4 Plugin and its extensions');
+				$error = _L('The RDAP Server depends on the IO4 Plugin and its extensions (or install it via composer and it MAYBE works!)');
 				$htmlmsg = 'Please install the IO4 Plugin into plugins/frdl/adminPages/io4/ from this repository: '
 					.'https://github.com/frdl/oidplus-io4-bridge-plugin (contact the site adminstrator to do it)!!!';
 				$error .= ': ' . $htmlmsg;		
@@ -86,8 +98,41 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 				$htmlmsg = 'The RDAP-Plugin DB-Structure changed. If the table {prefix}_attributes is not needed by another plugin  '
 					.' you can delete it (or migrate if you have data in it what is not expected)!';
 				$error .= ': ' . $htmlmsg;		
-			$notifications[] = new \ViaThinkSoft\OIDplus\OIDplusNotification('WARN', $error);			
+			$notifications[] = new \ViaThinkSoft\OIDplus\OIDplusNotification('INFO', $error);			
 		}
+		
+		
+			
+		$allocPlugin = OIDplus::getPluginByOid("1.3.6.1.4.1.37476.9000.108.19361.856");		         
+		if (is_null($allocPlugin)   ) {
+		// throw new OIDplusException(sprintf('You have to install the %s plugin!', '1.3.6.1.4.1.37476.9000.108.1276945.1654921702'));          			    $error = '';
+				$error = _L('The Allocations Plugin is suggested!');
+				$htmlmsg = 'Please install the OnjectType "NS" Plugin! You can contact the Frdleb support for help.';
+				$error .= ': ' . $htmlmsg;		
+			$notifications[] = new \ViaThinkSoft\OIDplus\OIDplusNotification('INFO', $error);  
+		} 		
+		
+		 
+			
+		$tenancyPlugin = OIDplus::getPluginByOid("1.3.6.1.4.1.37476.9000.108.1778120633");		         
+		if (!is_null($tenancyPlugin)   ) {
+		// throw new OIDplusException(sprintf('You have to install the %s plugin!', '1.3.6.1.4.1.37476.9000.108.1276945.1654921702'));          			    $error = '';
+				$error = _L('The Tenancy Plugin is suggested!');
+				$htmlmsg = 'You can install the Tenancy Plugin to provide OID-Connect Provider Services for Domains/Multi-Instances/Tenancy-Containers.';
+				$error .= ': ' . $htmlmsg;		
+			$notifications[] = new \ViaThinkSoft\OIDplus\OIDplusNotification('INFO', $error);  
+		} 			
+		
+		$rdapPlugin = OIDplus::getPluginByOid("1.3.6.1.4.1.37476.9000.108.19361.16043");		         
+		if (is_null($rdapPlugin)   ) { 			
+			$error = '';
+				$error = _L('The Plugin expects the CDN Plugin 1.3.6.1.4.1.37476.9000.108.19361.16043 to be installed!');
+				$htmlmsg = 'Please install the Plugin from composer OR into plugins/frdl/publicPages/cdn/ from this repository: '
+					.'https://github.com/frdl/oidplus-frdljs-cdn-proxy-plugin (contact the site adminstrator to do it)!!!';
+				$error .= ': ' . $htmlmsg;		
+			$notifications[] = new \ViaThinkSoft\OIDplus\OIDplusNotification('ERR', $error);  
+		} 			
+		
 		/*
 		//if ((!$user || ($user == 'admin')) && OIDplus::authUtils()->isAdminLoggedIn()) {
 			$error = '';
@@ -135,9 +180,18 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 			.'rdap/rdap.php?query='.urlencode($id).'" class="gray_footer_font" target="_blank">'._L('RDAP').'</a>';
 
 		$text = str_replace('<!-- MARKER 6 -->', '<!-- MARKER 6 -->'.$payload, $text);
+		
+		
+		//die();
 	}
+				   
 
+				   
 	public function gui(string $id, array &$out, bool &$handled) {
+	//	var_dump($this->mailparse_rfc822_parse_addresses($out['text']));
+	//	die();
+	
+		
 		if (explode('$',$id)[0] == 'oidplus:rdap') {
 			$handled = true;
  
@@ -158,6 +212,81 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 		$this->rdapServer_configdir = __DIR__.\DIRECTORY_SEPARATOR.'rdap-server';
 		$this->rdapServer_bootfile = $this->rdapServer_configdir.\DIRECTORY_SEPARATOR.'bootstrap.oid.json';
 		
+
+		
+		if (!OIDplus::db()->tableExists("###rdap_servers")) {
+			if (OIDplus::db()->getSlang()->id() == 'mysql') {
+				OIDplus::db()->query("CREATE TABLE ###rdap_servers ( `id` int(11) NOT NULL AUTO_INCREMENT,  `rdap_object_id` varchar(255) NOT NULL, `url` varchar(255) NOT NULL, `status` varchar(255) NOT NULL DEFAULT 'disabled', `validation_status` varchar(255) NOT NULL DEFAULT 'pending', `name` varchar(255) NOT NULL, `enabled` tinyint(1) NOT NULL DEFAULT 0,  `validated` tinyint(1) NOT NULL DEFAULT -1,   `created` int(11) NOT NULL DEFAULT 0,  `edited` int(11) NOT NULL DEFAULT 0,  PRIMARY KEY(`id`), CONSTRAINT ucosv UNIQUE (rdap_object_id,url) ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
+				$this->db_table_exists = true;
+			} else if (OIDplus::db()->getSlang()->id() == 'mssql') {
+				// We use nvarchar(225) instead of varchar(255), see https://github.com/frdl/oidplus-plugin-alternate-id-tracking/issues/18
+				// Unfortunately, we cannot use nvarchar(255), because we need two of them for the primary key, and an index must not be greater than 900 bytes in SQL Server.
+				// Therefore we can only use 225 Unicode characters instead of 255.
+				// It is very unlikely that someone has such giant identifiers. But if they do, then saveAltIdsForQuery() will reject the INSERT commands to avoid that an SQL Exception is thrown.
+				OIDplus::db()->query("CREATE TABLE ###rdap_servers (  [id] int(11) NOT NULL AUTO_INCREMENT, [rdap_object_id] nvarchar(225) NOT NULL, [url] nvarchar(225) NOT NULL,  [status] nvarchar(225) NOT NULL DEFAULT 'disabled',[validation_status] nvarchar(225) NOT NULL DEFAULT 'pending',  [name] nvarchar(225) NOT NULL, [enabled] int(1) NOT NULL DEFAULT 0, [validated] int(1) NOT NULL DEFAULT 0,  [created] int(11) NOT NULL DEFAULT 0, [edited] int(11) NOT NULL DEFAULT 0, CONSTRAINT [PK_###rdap_servers] PRIMARY KEY ( [id]  ) , CONSTRAINT [PK_###rdap_servers] UNIQUE KEY CLUSTERED( [rdap_object_id] ASC, [url] ASC ) )");
+				$this->db_table_exists = true;
+			} else if (OIDplus::db()->getSlang()->id() == 'oracle') {
+				// TODO: Implement Table Creation for this DBMS (see CREATE TABLE syntax at plugins/viathinksoft/sqlSlang/oracle/sql/*.sql)
+				$this->db_table_exists = false;
+			} else if (OIDplus::db()->getSlang()->id() == 'pgsql') {
+				// TODO: Implement Table Creation for this DBMS (see CREATE TABLE syntax at plugins/viathinksoft/sqlSlang/pgsql/sql/*.sql)
+				$this->db_table_exists = false;
+			} else if (OIDplus::db()->getSlang()->id() == 'access') {
+				// TODO: Implement Table Creation for this DBMS (see CREATE TABLE syntax at plugins/viathinksoft/sqlSlang/access/sql/*.sql)
+				$this->db_table_exists = false;
+			} else if (OIDplus::db()->getSlang()->id() == 'sqlite') {
+				// TODO: Implement Table Creation for this DBMS (see CREATE TABLE syntax at plugins/viathinksoft/sqlSlang/sqlite/sql/*.sql)
+				$this->db_table_exists = false;
+			} else if (OIDplus::db()->getSlang()->id() == 'firebird') {
+				// TODO: Implement Table Creation for this DBMS (see CREATE TABLE syntax at plugins/viathinksoft/sqlSlang/firebird/sql/*.sql)
+				$this->db_table_exists = false;
+			} else {
+				// DBMS not supported
+				$this->db_table_exists = false;
+			}
+		} else {
+			$this->db_table_exists = true;
+		}		
+		
+		if (!OIDplus::db()->tableExists("###rdap_roots")) {
+			if (OIDplus::db()->getSlang()->id() == 'mysql') {
+				OIDplus::db()->query("CREATE TABLE ###rdap_roots ( `rdap_server_id` int(11) NOT NULL,  `root` varchar(255) NOT NULL, `status` varchar(255) NOT NULL DEFAULT 'disabled', `validation_status` varchar(255) NOT NULL DEFAULT 'pending', `name` varchar(255) NOT NULL, `enabled` tinyint(1) NOT NULL DEFAULT 0,  `validated` tinyint(1) NOT NULL DEFAULT 0,   `created` int(11) NOT NULL DEFAULT 0,  `edited` int(11) NOT NULL DEFAULT 0,  PRIMARY KEY(`rdap_server_id`, `root`) ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
+				$this->db_table_exists = true;
+			} else if (OIDplus::db()->getSlang()->id() == 'mssql') {
+				// We use nvarchar(225) instead of varchar(255), see https://github.com/frdl/oidplus-plugin-alternate-id-tracking/issues/18
+				// Unfortunately, we cannot use nvarchar(255), because we need two of them for the primary key, and an index must not be greater than 900 bytes in SQL Server.
+				// Therefore we can only use 225 Unicode characters instead of 255.
+				// It is very unlikely that someone has such giant identifiers. But if they do, then saveAltIdsForQuery() will reject the INSERT commands to avoid that an SQL Exception is thrown.
+				OIDplus::db()->query("CREATE TABLE ###rdap_roots (  [rdap_server_id] int(11) NOT NULL, [root] nvarchar(225) NOT NULL, [status] nvarchar(225) NOT NULL DEFAULT 'disabled',[validation_status] nvarchar(225) NOT NULL DEFAULT 'pending',  [name] nvarchar(225) NOT NULL, [enabled] int(1) NOT NULL DEFAULT 0, [validated] int(1) NOT NULL DEFAULT 0,  [created] int(11) NOT NULL DEFAULT 0, [edited] int(11) NOT NULL DEFAULT 0, CONSTRAINT [PK_###rdap_roots] PRIMARY KEY ( [id]  ) , CONSTRAINT [PK_###rdap_roots] UNIQUE KEY CLUSTERED( [rdap_object_id] ASC, [url] ASC ) )");
+				$this->db_table_exists = true;
+			} else if (OIDplus::db()->getSlang()->id() == 'oracle') {
+				// TODO: Implement Table Creation for this DBMS (see CREATE TABLE syntax at plugins/viathinksoft/sqlSlang/oracle/sql/*.sql)
+				$this->db_table_exists = false;
+			} else if (OIDplus::db()->getSlang()->id() == 'pgsql') {
+				// TODO: Implement Table Creation for this DBMS (see CREATE TABLE syntax at plugins/viathinksoft/sqlSlang/pgsql/sql/*.sql)
+				$this->db_table_exists = false;
+			} else if (OIDplus::db()->getSlang()->id() == 'access') {
+				// TODO: Implement Table Creation for this DBMS (see CREATE TABLE syntax at plugins/viathinksoft/sqlSlang/access/sql/*.sql)
+				$this->db_table_exists = false;
+			} else if (OIDplus::db()->getSlang()->id() == 'sqlite') {
+				// TODO: Implement Table Creation for this DBMS (see CREATE TABLE syntax at plugins/viathinksoft/sqlSlang/sqlite/sql/*.sql)
+				$this->db_table_exists = false;
+			} else if (OIDplus::db()->getSlang()->id() == 'firebird') {
+				// TODO: Implement Table Creation for this DBMS (see CREATE TABLE syntax at plugins/viathinksoft/sqlSlang/firebird/sql/*.sql)
+				$this->db_table_exists = false;
+			} else {
+				// DBMS not supported
+				$this->db_table_exists = false;
+			}
+		} else {
+			$this->db_table_exists = true;
+		}				
+		
+		
+		
+		
+		
+		
 	if (!OIDplus::db()->tableExists("###attr")) {
 			if (OIDplus::db()->getSlang()->id() == 'mysql') {
 				OIDplus::db()->query("CREATE TABLE ###attr ( `id` int(11) NOT NULL AUTO_INCREMENT, `oid` varchar(255) NOT NULL, `a_subject` varchar(255) NOT NULL, `a_verb` varchar(255) NOT NULL, `a_object` varchar(255) NOT NULL, `created` int(11) NOT NULL DEFAULT 0,  `expires` int(11) NOT NULL DEFAULT -1,  PRIMARY KEY(`id`), CONSTRAINT ucosv UNIQUE (oid,a_subject,a_verb,a_object) ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
@@ -167,7 +296,7 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 				// Unfortunately, we cannot use nvarchar(255), because we need two of them for the primary key, and an index must not be greater than 900 bytes in SQL Server.
 				// Therefore we can only use 225 Unicode characters instead of 255.
 				// It is very unlikely that someone has such giant identifiers. But if they do, then saveAltIdsForQuery() will reject the INSERT commands to avoid that an SQL Exception is thrown.
-				OIDplus::db()->query("CREATE TABLE ###attr (  [id] int(11) NOT NULL AUTO_INCREMENT, [oid] nvarchar(225) NOT NULL, [a_subject] nvarchar(225) NOT NULL, [a_verb] nvarchar(225), [a_object] nvarchar(225) NOT NULL,  [created] int(11) NOT NULL DEFAULT 0,  [expires] int(11) NOT NULL DEFAULT -1, CONSTRAINT [PK_###attr] PRIMARY KEY ( [id]  ) , CONSTRAINT [PK_###attributes] UNIQUE KEY CLUSTERED( [oid] ASC, [a_subject] ASC [a_verb] ASC [a_object] ASC ) )");
+				OIDplus::db()->query("CREATE TABLE ###attr (  [id] int(11) NOT NULL AUTO_INCREMENT, [oid] nvarchar(225) NOT NULL, [a_subject] nvarchar(225) NOT NULL, [a_verb] nvarchar(225), [a_object] nvarchar(225) NOT NULL,  [created] int(11) NOT NULL DEFAULT 0,  [expires] int(11) NOT NULL DEFAULT -1, CONSTRAINT [PK_###attr] PRIMARY KEY ( [id]  ) , CONSTRAINT [PK_###attributes] UNIQUE KEY CLUSTERED( [oid] ASC, [a_subject] ASC, [a_verb] ASC, [a_object] ASC ) )");
 				$this->db_table_exists = true;
 			} else if (OIDplus::db()->getSlang()->id() == 'oracle') {
 				// TODO: Implement Table Creation for this DBMS (see CREATE TABLE syntax at plugins/viathinksoft/sqlSlang/oracle/sql/*.sql)
@@ -235,7 +364,9 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 		  
 			 	OIDplus::baseConfig()->setValue('FRDLWEB_OID_CONNECT_API_ROUTE', $value );
 		});		
+		
 		*/
+		
 		
 		OIDplus::config()->prepareConfigKey('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'The RDAP base uri to the RDAP -Module. Example: "rdap" or "oid-connect/rdap"', self::DEFAULT_RDAP_BASEPATH, OIDplusConfig::PROTECTION_EDITABLE, function ($value) {
 		  
@@ -266,6 +397,38 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 			throw new OIDplusException(sprintf('You have to install the dependencies of the plugin package %s via composer OR you need the plugin %s to be installed in OIDplus and its remote-autoloader enabled. Read about how to use composer with OIDplus at: https://weid.info/plus/ .', 'https://github.com/frdl/oidplus-frdlweb-rdap', 'https://github.com/frdl/oidplus-io4-bridge-plugin'));
 		}
 	  }//!exists \Webfan\RDAP\Rdap::class
+		
+		OIDplus::config()->prepareConfigKey('FRDLWEB_OID_DNS_ROOT_SERVER_HOST', 'The OID DNS Root Nameserver Server Host ( set it to "oid.zone" !)',                      "oid.zone", OIDplusConfig::PROTECTION_EDITABLE, function ($value) {
+		  
+			 	OIDplus::baseConfig()->setValue('FRDLWEB_OID_DNS_ROOT_SERVER_HOST', $value );
+		});			
+
+		
+		OIDplus::config()->prepareConfigKey('FRDLWEB_OID_DNS_ROOT_SERVER_PORT', 
+											'The OID DNS Root Server Port ( set it to "53" !)',                 
+											"53",             OIDplusConfig::PROTECTION_EDITABLE, function ($value) {
+		  
+			 	OIDplus::baseConfig()->setValue('FRDLWEB_OID_DNS_ROOT_SERVER_PORT', $value );
+		});		
+		
+		OIDplus::config()->prepareConfigKey('FRDLWEB_OID_DNS_SECONDARY_NAMESERVER_HOST',
+											'Secondary of Root Nameserver ( set it e.g. to "ns1.wfpu.de" !)',                      "ns1.wfpu.de", OIDplusConfig::PROTECTION_EDITABLE, function ($value) {
+		  
+			 	OIDplus::baseConfig()->setValue('FRDLWEB_OID_DNS_SECONDARY_NAMESERVER_HOST', $value );
+		});			
+		
+		OIDplus::config()->prepareConfigKey('FRDLWEB_OID_DNS_SECONDARY_NAMESERVER_PORT',
+											'Secondary of Root Nameserver ( set it e.g. to "53" !)',               
+											"53", OIDplusConfig::PROTECTION_EDITABLE, function ($value) {
+		  
+			 	OIDplus::baseConfig()->setValue('FRDLWEB_OID_DNS_SECONDARY_NAMESERVER_PORT', $value );
+		});					
+		
+		
+		OIDplus::config()->prepareConfigKey('FRDLWEB_DNS_OVER_HTTPS_BASE_URI', 'The base uri for the DNS over HTTPS endpoint ( default: "dns-query")"', "dns-query", OIDplusConfig::PROTECTION_EDITABLE, function ($value) {
+		  
+			 	OIDplus::baseConfig()->setValue('FRDLWEB_DNS_OVER_HTTPS_BASE_URI', $value );
+		});				
 		
 		
 	}	//init				   
@@ -427,7 +590,8 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 		$out['rdapConformance'][]='redirect_with_content'; 
 		if(isset($out['frdlweb_ini_dot']['RDAP'])){
 			  if(isset($out['frdlweb_ini_dot']['RDAP']['URL']['AUTHORITATIV'])
-				 && isset($out['frdlweb_ini_dot']['RDAP']['SYSTEM']) ){
+			//	 && isset($out['frdlweb_ini_dot']['RDAP']['SYSTEM']) 
+				){
 				  $url = rtrim( $out['frdlweb_ini_dot']['RDAP']['URL']['AUTHORITATIV'],'/ ').'/';
 				  $url.= $ns.'/';
 				  $url.= $id;			 
@@ -613,11 +777,15 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 					 if(!isset($matches[1])){
 						 preg_match("/URL\:([^\s]+)\s/", $description, $matches);
 					 }
-									$url = $matches[1];
-						 
+								
+						 $url = $matches[1];						 		 
+						 $p = parse_url($url);		        
+						 if(false === $p || !isset($p['host'])){				
+							 $exists = false;
+						 }else{
 						 				  $headers = @get_headers($url);                
 				                          $exists = (bool) strpos($headers[0], '200'); 
-						 
+						 }
 						 $resultSub=[
 					        'registryName' => $registryName,
 					     //  'description' => $description,
@@ -659,7 +827,10 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 				   
 	public function rdapBootstrap_oid_services(array $out) : array {
 	    foreach($this->getOIDplusInstances() as $instance){
-			if(!isset($out[$instance['url']])){
+			if(true !== $instance['available']){
+			  continue;	
+			}
+			if(!isset($out[$instance['url']]) ){
 				$out[$instance['url']] = [];
 			}
 			if(!isset($out[$instance['url']][0])){
@@ -757,7 +928,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 					 header('Location: '.$url);
 				 }
 				 header('Content-Type:'.$out_type);		
-				 echo json_encode($o);		
+				 echo json_encode($o, \JSON_PRETTY_PRINT );		
 				 die();
 		 }
 	}
@@ -772,7 +943,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 			     http_response_code(200);
            		OIDplus::invoke_shutdown();
 		    	@header('Content-Type:application/json; charset=utf-8');
-			    echo json_encode($services);
+			    echo json_encode($services, \JSON_PRETTY_PRINT );
 			    die();			
 	}
 				   
@@ -781,6 +952,12 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 		$request = trim($_SERVER['REQUEST_URI'],'/');
 		$magicLink = false;
 		[$ns, $id] = explode('/', $request, 2);
+		
+			
+		if (str_starts_with($requestOidplus, OIDplus::baseConfig()->getValue('FRDLWEB_DNS_OVER_HTTPS_BASE_URI', 'dns-query'))) {
+			
+		}
+		
 		
 		if('bootstrap'===$ns && 'oid' === $id){
 		   return $this->handle_wrapBootstrapServices( );
@@ -866,10 +1043,10 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 					]
 				],
 		 
-				_L('@ Get RDAP for an OID') => [
+				_L('@ Get RDAP for an Object') => [
 					'<b>GET</b> '.OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL)
 					    .OIDplus::baseConfig()->getValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'rdap')
-					   .'/<abbr title="'._L('e.g. %1', '@/oid:2.999').'">[id]</abbr>',
+					   .'/<abbr title="'._L('Namespace/ObejctClass: e.g. %1', 'oid').'">[ns]</abbr>/<abbr title="'._L('ID: e.g. %1', '2.999').'">[id]</abbr>',
 					_L('Input parameters') => [
 						'<i>'._L('None').'</i>'
 					],
@@ -880,7 +1057,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 				
 	
 				_L('@ Get DATA for Bootstrap RDAP OID Services of this node') => [
-					'<b>GET</b> '.OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL).'rest/v1/bootstrap/services/oid.json',
+					'<b>GET</b> <a href="'.OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL).'rest/v1/bootstrap/services/oid.json" target="_blank">'.OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL).'rest/v1/bootstrap/services/oid.json</a>',
 					_L('Input parameters') => [
 						'<i>'._L('None').'</i>'
 					],
@@ -890,9 +1067,11 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 				],
 				
 				_L('@ Get WRAP for Bootstrap RDAP OID Services') => [
-					'<b>GET</b> '.OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL)
+					'<b>GET</b> <a href="'.OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL)
 					    .OIDplus::baseConfig()->getValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'rdap')
-					   .'/bootstrap/oid',
+					   .'/bootstrap/oid" target="_blank">'.OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL)
+					    .OIDplus::baseConfig()->getValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'rdap')
+					   .'/bootstrap/oid</a>',
 					_L('Input parameters') => [
 						'<i>'._L('None').'</i>'
 					],
@@ -902,7 +1081,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 				],				
 	
 				_L('@ Get DATA for Bootstrap RDAP OID Services') => [
-					'<b>GET</b> '.OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL).'rest/v1/bootstrap/root/oid.json',
+					'<b>GET</b> <a href="'.OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL).'rest/v1/bootstrap/root/oid.json" target="_blank">'.OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL).'rest/v1/bootstrap/root/oid.json</a>',
 					_L('Input parameters') => [
 						'<i>'._L('None').'</i>'
 					],
@@ -934,14 +1113,14 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 			      'endpoint'=>$endpoint,
 			      'method'=>$requestMethod,
 			      'services'=>$services, 
-			    ]);
+			    ], \JSON_PRETTY_PRINT );
 			    die();
 		}elseif('bootstrap/root/oid.json' === $endpoint ){
 			     $services = $this->rdapBootstrapRootServices('oid');
 			     http_response_code(200);
            		OIDplus::invoke_shutdown();
 		    	@header('Content-Type:application/json; charset=utf-8');
-			    echo json_encode($services);
+			    echo json_encode($services, \JSON_PRETTY_PRINT );
 			    die();
 		}elseif (str_starts_with($endpoint, OIDplus::baseConfig()->getValue('FRDLWEB_OID_CONNECT_API_ROUTE', 'oid-connect').'/')) {
 			$id = substr($endpoint, strlen(OIDplus::baseConfig()->getValue('FRDLWEB_OID_CONNECT_API_ROUTE', 'oid-connect').'/'));
@@ -962,7 +1141,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 			      'endpoint'=>$endpoint,
 			      'method'=>$requestMethod,
 			      'payload'=>$json_in,
-			    ]);
+			    ], \JSON_PRETTY_PRINT );
 			    die(); // return true;
 			}
 			
@@ -982,7 +1161,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 			      'method'=>$requestMethod,
 			       'object'=>(array)$obj,
 			      'alloc'=>[],
-			    ]);
+			    ], \JSON_PRETTY_PRINT );
 			    die(); // return true;	         
 		         
 		         
@@ -1002,7 +1181,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 			      'method'=>$requestMethod,
 			       'object'=>(array)$obj,
 			      'alloc'=>[],
-			    ]);
+			    ], \JSON_PRETTY_PRINT );
 			    die(); // return true;	         
 		         
 		         
@@ -1023,7 +1202,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 			      'method'=>$requestMethod,
 			    'object'=>(array)$obj,
 			  'alloc'=>[],
-			    ]);
+			    ], \JSON_PRETTY_PRINT );
 			    die(); // return true;	     
 			}else{
 				if (!$obj->userHasParentalWriteRights()){
@@ -1043,7 +1222,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 			      'method'=>$requestMethod,
 		          'object'=>(array)$obj,
 		          'alloc'=>[],
-			    ]);
+			    ], \JSON_PRETTY_PRINT );
 			    die(); // return true;				
 			}
 
@@ -1055,9 +1234,133 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 				   
 				
 				   
-		
-	public function tree(array &$json, string $ra_email=null, bool $nonjs=false, string $req_goto=''): bool {
+		public function tree(array &$json, string $ra_email=null, bool $nonjs=false, string $req_goto=''): bool {
 			return false;
+			/*
+		if ($nonjs) {
+			$json[] = array(
+				'id' => 'oidplus:system',
+				'icon' => OIDplus::webpath(__DIR__,OIDplus::PATH_RELATIVE).'img/main_icon16.png',
+				'text' => _L('System')
+			);
+
+			$objGoto = OIDplusObject::findFitting($req_goto);
+			$objGotoParent = $objGoto ? $objGoto->getParent() : null;
+			$parent = $objGotoParent ? $objGotoParent->nodeId() : '';
+
+			$objTypesChildren = array();
+			foreach (OIDplus::getEnabledObjectTypes() as $ot) {
+				$icon = $this->get_treeicon_root($ot);
+
+				$json[] = array(
+					'id' => $ot::root(),
+					'icon' => $icon,
+					'text' => $ot::objectTypeTitle()
+				);
+
+				$tmp = OIDplusObject::parse($req_goto);
+				if ($tmp && ($ot == get_class($tmp))) {
+					// TODO: Instead of just having 3 levels (parent, this and children), it would be better if we'd had a full tree of all parents
+					//       on the other hand, for giving search engines content, this is good enough
+					if (empty($parent)) {
+						$res = OIDplus::db()->query("select * from ###objects where " .
+						                            "parent = ? or " .
+						                            "id = ? ", array($req_goto, $req_goto));
+					} else {
+						$res = OIDplus::db()->query("select * from ###objects where " .
+						                            "parent = ? or " .
+						                            "id = ? or " .
+						                            "id = ? ", array($req_goto, $req_goto, $parent));
+					}
+					$res->naturalSortByField('id');
+
+					$z_used = 0;
+					$y_used = 0;
+					$x_used = 0;
+					$stufe = 0;
+					$menu_entries = array();
+					$stufen = array();
+					$max_ent = 0;
+					while ($row = $res->fetch_object()) {
+						$max_ent++;
+						if ($max_ent > 1000) { // TODO: we need to find a solution for this!!!
+							$menu_entry = array('id' => '', 'icon' => '', 'text' => _L('List truncated due to too many subordinate elements'), 'indent' => 0);
+							$menu_entries[] = $menu_entry;
+							$stufen[] = $stufe;
+							break;
+						}
+
+						$obj = OIDplusObject::parse($row->id);
+						if (!$obj) continue; // might happen if the objectType is not available/loaded
+						if (!$obj->userHasReadRights()) continue;
+						$txt = ($row->title ?? '') == '' ? '' : ' -- '.htmlentities($row->title);
+
+						if ($row->id == $parent) { $stufe=0; $z_used++; }
+						if ($row->id == $req_goto) { $stufe=1; $y_used++; }
+						if ($row->parent == $req_goto) { $stufe=2; $x_used++; }
+
+						$menu_entry = array('id' => $row->id, 'icon' => '', 'text' => $txt, 'indent' => 0);
+						$menu_entries[] = $menu_entry;
+						$stufen[] = $stufe;
+					}
+					if ($x_used) foreach ($menu_entries as $i => &$menu_entry) if ($stufen[$i] >= 2) $menu_entry['indent'] += 1;
+					if ($y_used) foreach ($menu_entries as $i => &$menu_entry) if ($stufen[$i] >= 1) $menu_entry['indent'] += 1;
+					if ($z_used) foreach ($menu_entries as $i => &$menu_entry) if ($stufen[$i] >= 0) $menu_entry['indent'] += 1;
+					$json = array_merge($json, $menu_entries);
+				}
+			}
+
+			return true;
+		} else {
+			if ($req_goto === "*") {
+				$goto_path = true; // display everything recursively
+			} else if ($req_goto !== "") {
+				$goto = $req_goto;
+				$path = array();
+				while (true) {
+					$path[] = $goto;
+					$objGoto = OIDplusObject::findFitting($goto);
+					if (!$objGoto) break;
+					$objGotoParent = $objGoto->getParent();
+					$goto = $objGotoParent ? $objGotoParent->nodeId() : '';
+					if ($goto == '') continue;
+				}
+
+				$goto_path = array_reverse($path);
+			} else {
+				$goto_path = null;
+			}
+
+			$objTypesChildren = array();
+			foreach (OIDplus::getEnabledObjectTypes() as $ot) {
+				$icon = $this->get_treeicon_root($ot);
+
+				$child = array('id' => $ot::root(),
+				               'text' => $ot::objectTypeTitle(),
+				               'state' => array("opened" => true),
+				               'icon' => $icon,
+				               'children' => OIDplus::menuUtils()->tree_populate($ot::root(), $goto_path)
+				               );
+				if ($child['icon'] && !file_exists($child['icon'])) $child['icon'] = null; // default icon (folder)
+				$objTypesChildren[] = $child;
+			}
+
+			$json[] = array(
+				'id' => "oidplus:system",
+				'text' => _L('Objects'),
+				'state' => array(
+					"opened" => true,
+					// "selected" => true)  // "selected" is buggy:
+					// 1) The select-event will not be triggered upon loading
+					// 2) The nodes directly blow cannot be opened (loading infinite time)
+				),
+				'icon' => OIDplus::webpath(__DIR__,OIDplus::PATH_RELATIVE).'img/main_icon16.png',
+				'children' => $objTypesChildren
+			);
+
+			return true;
+		}
+		*/
 	}
 
 	/**
@@ -1067,6 +1370,38 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 	public function tree_search(string $request) {
 		$ary = array();
 		return $ary;
+		/*
+		$ary = array();
+		$found_leaf = false;
+		if ($obj = OIDplusObject::parse($request)) {
+			$found_leaf = OIDplusObject::exists($request);
+			do {
+				if ($obj->userHasReadRights()) {
+					$ary[] = $obj->nodeId();
+				}
+			} while ($obj = $obj->getParent());
+			$ary = array_reverse($ary);
+		}
+		if (!$found_leaf) {
+			$alternatives = $this->getAlternativesForQuery($request);
+			foreach ($alternatives as $alternative) {
+				$ary_ = array();
+				if ($obj = OIDplusObject::parse($alternative)) {
+					if ($obj->userHasReadRights() && OIDplusObject::exists($alternative)) {
+						do {
+							$ary_[] = $obj->nodeId();
+						} while ($obj = $obj->getParent());
+						$ary_ = array_reverse($ary_);
+					}
+				}
+				if (!empty($ary_)) {
+					$ary = $ary_;
+					break;
+				}
+			}
+		}
+		return $ary;
+		*/
 	}			   
 				   
 				   
