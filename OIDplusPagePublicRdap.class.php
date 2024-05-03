@@ -887,7 +887,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 			  $client = new \Webfan\RDAP\Rdap($namespace);
 			  $client = $client->addService($namespace, $this->rdapBootstrapServices($namespace));
 			
-			  $result = $client->dumpServices($protocol, true, true);	
+			  $result = $client->dumpServices($namespace, true, true);	
 			 
 			$item->set($result);
 			$cache->save($item);			
@@ -908,7 +908,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 			  $client = new \Webfan\RDAP\Rdap($namespace);
 			  $client = $client->addService($namespace, $this->rdapBootstrapServices($namespace));
 			
-			  $result = $client->dumpServices($protocol, false, true);	
+			  $result = $client->dumpServices($namespace, false, true);	
 			 
 			$item->set($result);
 			$cache->save($item);			
