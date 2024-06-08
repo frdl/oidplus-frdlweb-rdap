@@ -44,6 +44,7 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 	implements \ViaThinkSoft\OIDplus\INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_2, /* modifyContent */
 	             \ViaThinkSoft\OIDplus\INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_9,  //API
 
+                   \ViaThinkSoft\OIDplus\INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_7,//public function getAlternativesForQuery(string $id): array;
 	 
 	           \ViaThinkSoft\OIDplus\INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_3, /* beforeObject*, afterObject* */
 	           \ViaThinkSoft\OIDplus\INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_4, /* whois*Attributes */
@@ -61,8 +62,7 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 	protected $_cache = null;
 				   
 				 
-		   
-				   
+ 		   
 	/**
 	 * Implements interface INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_8
 	 * @param string|null $user
@@ -182,10 +182,132 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 		$text = str_replace('<!-- MARKER 6 -->', '<!-- MARKER 6 -->'.$payload, $text);
 		
 		
+				 				
+		$isCentral = OIDplus::baseConfig()->getValue('TENANT_APP_ID_OID') === '1.3.6.1.4.1.37476.30.9.1494410075'  
+			   && OIDplus::baseConfig()->getValue('TENANT_OBJECT_ID_OID' ) === '1.3.6.1.4.1.37553';
+		
+		
+		  [$ns, $id] = explode(':', $id, 2);
+		
+		$out = '';
+		if(!$isCentral){
+		     // echo tenant info	
+		}
+		
+  $TENANT_ENTITY_OID =	OIDplus::baseConfig()->getValue('TENANT_OBJECT_ID_OID' );
+  $HUB_NODE_APP_OID =	OIDplus::baseConfig()->getValue('TENANT_APP_ID_OID' );
+  $HANDLE = '@'.$id;	
+		
+		$out.=<<<HTMLCODE
+<h1>Federated OID Info:</h1>
+<ul>
+	<li>Handle: $HANDLE</li>
+	<li>Entity running this (Meta-)Node: $TENANT_ENTITY_OID</li>
+	<li>Application this node runs in: $HUB_NODE_APP_OID</li>
+</ul>
+HTMLCODE;
+	
+		
+		
+		$out.=<<<HTMLCODE
+<h1>RDAP OID Registrar/Registrant Authortive Service:</h1>
+	
+<ul>
+	<li><a href="https://oid.zone/join-weid/rdap-bootstrap-root-for-oid" target="_blanK">
+	     RDAP Bootstrap Server
+	    </a>
+     </li>
+	<li>Handle: $id</li>
+</ul>
+HTMLCODE;
+				
+		
+		$text.=$out;
+		
+		
+		$text.='<legend>Special AltIds</legend>';
+		
+		$text.='<ul>';
+		  $text.='<li>';
+		   $text.=implode('</li><li>', $this->getAlternativesForQuery($id));
+		  $text.='</li>';		
+		$text.='</ul>';
+		//print_r($this->getAlternativesForQuery($id),true);
 		//die();
+		
+		/*
+		  [$ns, $id] = explode(':', $id, 2);
+			   $root_oids = [];
+	   
+ 
+		   		
+		   $obj = OIDplusObject::findFitting($id);
+				
+			if (!$obj) {
+				$obj = OIDplusObject::parse($id);
+			}
+		   
+		   $ra_mail = $obj->getRaMail();
+		 
+		   $root_oids = array_merge($root_oids, OIDplusObject::getRaRoots($ra_email));
+		   $text.=$ra_mail.print_r($root_oids,true);
+ */
+	   
 	}
-				   
+			
+	//INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_7			   
+   public function getAlternativesForQuery(string $id): array{
+	   $parts = explode(':', $id, 2);
+	    $weid = false;
+	    $oid = false;
+	    $id = 1 === count($parts) && \oid_valid_dotnotation( $id )
+			 ? 'oid:'.$id
+			 : $parts[0].':'.$parts[1];
+	   @[$ns, $id] = explode(':', $id, 2); 
+	   $alt = [];
+	  
+	    if('weid' === $ns){
+			$weid = $ns.':'.$id;
+		   $id = \Frdl\Weid\WeidOidConverter::weid2oid($weid);
+		      //  print_r([$weid, \oid_valid_dotnotation($id, false, true, 0),$ns,$id,$alt]);die();
+			$ns = 'oid';
+	    }
 
+	   if( 'oid'=== $ns && ($id != '') && (\oid_valid_dotnotation($id, false, true, 0)) ){
+		  $oid = $id;
+		  $dnsp = explode('.', $id);
+		  $rev = array_reverse($dnsp);
+		  $alt[] = implode('.', $rev).'.oid.zone'; 
+		  $alt[] = $id.'.connect.oid.zone'; 
+	 
+	   
+	       
+	        $alt[] = $id.'@alias.webfan.de'; 
+	   
+		   $weid = \Frdl\Weid\WeidOidConverter::oid2weid($id);
+		   $weidHostedName = str_replace(':', '--', $weid);
+		   if(!empty($weid)){
+			//   $alt[] = $weidHostedName.'.weid.oid.zone'; 
+			   $alt[] = $weidHostedName.'.weid.info'; 
+			   $alt[] = $weid.'@weid.info'; 
+			   $alt[] ='weid.info/@'.$weid; 
+			   $alt[] ='weid.info/@'.$id; 
+			   $alt[] = $weidHostedName.htmlentities('.<DOMAIN>'); 
+			   $alt[] = $weid.htmlentities('@<DOMAIN>'); 
+		   }
+		   
+		 
+		   $alt[] = implode('.', $rev).htmlentities('.<DOMAIN>'); 			  
+		   $alt[] = $id.htmlentities('@<DOMAIN>'); 		  		  
+		   $alt[] = $weid.htmlentities('@<DOMAIN>'); 		  
+		   $alt[] = htmlentities('<DOMAIN>/@').$weid.htmlentities('@<DOMAIN>'); 	  
+		   $alt[] = htmlentities('<DOMAIN>/@').$id.htmlentities('@<DOMAIN>'); 
+	  
+	   }// oid oid ns
+	   
+	 // print_r([$weid, \oid_valid_dotnotation($id, false, true, 0),$ns,$id,$alt]);die();
+	   return $alt;
+   }
 				   
 	public function gui(string $id, array &$out, bool &$handled) {
 	//	var_dump($this->mailparse_rfc822_parse_addresses($out['text']));
@@ -203,6 +325,56 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 			$out['text']  = '<p>'._L('With the RDAP Protocol, you can query object information about an object/OID/WEID/ID and its registration information and authoritive RA info.').'</p>';
 
 
+		}elseif (explode('$',$id)[0] == 'oidplus:dns') {
+			$handled = true;
+ 
+ 
+
+			$out['title'] = _L('DNS over HTTPS');
+	 	$out['icon'] = file_exists(__DIR__.'/img/main_icon.png') ? OIDplus::webpath(__DIR__,OIDplus::PATH_RELATIVE).'img/main_icon.png' : '';
+ 
+		$io4Plugin = OIDplus::getPluginByOid("1.3.6.1.4.1.37476.9000.108.19361.24196");		         
+		if (!is_null($io4Plugin) && \is_callable([$io4Plugin,'getWebfat']) ) {
+		//   $io4Plugin->getWebfat(true,false);	      
+			// $io4Plugin->bootIO4( $io4Plugin->getWebfat(true,false) );	      
+		    $io4Plugin->bootIO4(   );	      
+		}else{
+			throw new OIDplusException(sprintf('You have to install the dependencies of the plugin package %s via composer OR you need the plugin %s to be installed in OIDplus and its remote-autoloader enabled. Read about how to use composer with OIDplus at: https://weid.info/plus/ .', 'https://github.com/frdl/oidplus-frdlweb-rdap', 'https://github.com/frdl/oidplus-io4-bridge-plugin'));
+		}			
+	 
+	//	 ob_end_clean();
+		//echo \Webfan\Webfat::class.'exists: '. \get_class(\Webfan::io4());
+		
+		$url = OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL)
+					    .OIDplus::baseConfig()->getValue('FRDLWEB_DNS_OVER_HTTPS_BASE_URI', 'dns-query');
+		$url = rtrim($url, '/ ').'/';
+		
+	 /*
+		$actionDNSTesterResult = \Webfan::html(2, 'load', '')->compile(
+			sprintf(
+				'<component src="module:@frdl/dns-query" ns-url="%s"  ns-host="%s" ns-port="%s" emit-response="%s" />',
+				'https://'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'],
+				 OIDplus::baseConfig()->getValue('FRDLWEB_OID_DNS_ROOT_SERVER_HOST', 'oid.zone'),
+				 OIDplus::baseConfig()->getValue('FRDLWEB_OID_DNS_ROOT_SERVER_PORT', 53),
+				 'auto'
+				)
+		)
+		 	->save()
+			;
+		*/	
+			$actionDNSTesterResult = \Webfan::html()->compile(
+			sprintf(
+				'<component src="module:@frdl/dns-query" ns-url="%s"  ns-host="%s" ns-port="%s" emit-response="%s" />',
+				'https://'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'],
+				 OIDplus::baseConfig()->getValue('FRDLWEB_OID_DNS_ROOT_SERVER_HOST', 'oid.zone'),
+				 OIDplus::baseConfig()->getValue('FRDLWEB_OID_DNS_ROOT_SERVER_PORT', 53),
+				 'false'
+				)
+		);
+			//app.runtime.dir
+			//$container=$io4Plugin->getWebfat(true,false)->getAsContainer(null);
+		//	$out['text']   =\frdl\patch\scope().'<br />'.$container->get('app.runtime.dir').$actionDNSTesterResult;
+			$out['text']  = $actionDNSTesterResult;
 		}
 	}	
 				   
@@ -211,6 +383,7 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 	public function init($html = true) {
 		$this->rdapServer_configdir = __DIR__.\DIRECTORY_SEPARATOR.'rdap-server';
 		$this->rdapServer_bootfile = $this->rdapServer_configdir.\DIRECTORY_SEPARATOR.'bootstrap.oid.json';
+		
 		
 
 		
@@ -412,7 +585,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 		});		
 		
 		OIDplus::config()->prepareConfigKey('FRDLWEB_OID_DNS_SECONDARY_NAMESERVER_HOST',
-											'Secondary of Root Nameserver ( set it e.g. to "ns1.wfpu.de" !)',                      "ns1.wfpu.de", OIDplusConfig::PROTECTION_EDITABLE, function ($value) {
+											'Secondary of Root Nameserver ( set it e.g. to "oid.zone" or "ns1.wfpu.de" !)',                      "oid.zone", OIDplusConfig::PROTECTION_EDITABLE, function ($value) {
 		  
 			 	OIDplus::baseConfig()->setValue('FRDLWEB_OID_DNS_SECONDARY_NAMESERVER_HOST', $value );
 		});			
@@ -425,7 +598,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 		});					
 		
 		
-		OIDplus::config()->prepareConfigKey('FRDLWEB_DNS_OVER_HTTPS_BASE_URI', 'The base uri for the DNS over HTTPS endpoint ( default: "dns-query")"', "dns-query", OIDplusConfig::PROTECTION_EDITABLE, function ($value) {
+		OIDplus::config()->prepareConfigKey('FRDLWEB_DNS_OVER_HTTPS_BASE_URI', 'The base uri for the DNS over HTTPS endpoint ( default: "dns-query")"', "dns-query/", OIDplusConfig::PROTECTION_EDITABLE, function ($value) {
 		  
 			 	OIDplus::baseConfig()->setValue('FRDLWEB_DNS_OVER_HTTPS_BASE_URI', $value );
 		});				
@@ -744,7 +917,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 
 		
 	public function getCacheKey($type, $name){
-		return 'rdap.25-'.strlen($type).'.'.self::CACHE_VERSION.'-'. __FILE__ .'-'
+		return 'rdap.2675-'.strlen($type).'.'.self::CACHE_VERSION.'-'. __FILE__ .'-'
 			.sha1($name).'l'.strlen($name).'-'.sha1($type);
 	}		
 				   
@@ -848,6 +1021,49 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
                 $out[$instance['url']][0][]=$instance['oid'];
 			}      
 		}		
+		
+		$res = OIDplus::db()->query("select lo.url, lo.enabled, lo.validated, lu.root, lu.enabled, lu.validated from ###rdap_servers lo ".
+					                            "left join ###rdap_roots lu on lu.rdap_server_id = lo.id ".
+					                            "where lu.enabled = ? and lo.enabled = ? and lu.validated = ? and lo.validated = ? " .
+					                            "order by lo.url, lu.root desc", array(1,1,1,1));
+		
+		
+					if ($res->any()) { 
+						while ($row = $res->fetch_array()) {
+							
+				         $instance = $row;
+						$instance['oid'] = $row['root'];	
+							
+							if(!isset($out[$instance['url']]) ){			
+								$out[$instance['url']] = [];			
+							}	 
+							
+					
+							if(!isset($out[$instance['url']][0])){				
+								$out[$instance['url']][0] = [];			
+							}		
+			
+							if(!isset($out[$instance['url']][1])){				
+								$out[$instance['url']][1] = [];			
+							}	
+			
+			
+							if (!in_array($instance['url'], $out[$instance['url']][1])) {              
+								$out[$instance['url']][1][]=$instance['url'];			
+							}  
+									
+			
+							if (!in_array($instance['oid'], $out[$instance['url']][0])) {   			
+								$out[$instance['url']][0][]=$instance['oid'];		
+							}      					
+					
+						}
+ 
+					} else {
+					 
+					}		
+		
+		
 		return $out;
 	}
 	
@@ -951,12 +1167,90 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 		$requestOidplus = $request;
 		$request = trim($_SERVER['REQUEST_URI'],'/');
 		$magicLink = false;
-		[$ns, $id] = explode('/', $request, 2);
+		@[$ns, $id] = explode('/', $request, 2);
+		 $rel_url_original =substr($_SERVER['REQUEST_URI'], strlen(OIDplus::webpath(null, OIDplus::PATH_RELATIVE_TO_ROOT)));
+			
+	if (str_starts_with($requestOidplus, OIDplus::baseConfig()->getValue('FRDLWEB_DNS_OVER_HTTPS_BASE_URI', 'dns-query'))) {
+	
+		$io4Plugin = OIDplus::getPluginByOid("1.3.6.1.4.1.37476.9000.108.19361.24196");		         
+		if (!is_null($io4Plugin) && \is_callable([$io4Plugin,'getWebfat']) ) {
+		//   $io4Plugin->getWebfat(true,false);	      
+			// $io4Plugin->bootIO4( $io4Plugin->getWebfat(true,false) );	      
+		    $io4Plugin->bootIO4(   );	      
+		}else{
+			throw new OIDplusException(sprintf('You have to install the dependencies of the plugin package %s via composer OR you need the plugin %s to be installed in OIDplus and its remote-autoloader enabled. Read about how to use composer with OIDplus at: https://weid.info/plus/ .', 'https://github.com/frdl/oidplus-frdlweb-rdap', 'https://github.com/frdl/oidplus-io4-bridge-plugin'));
+		}			
+	 /*
+		ob_end_clean();
+		//echo \Webfan\Webfat::class.'exists: '. \get_class(\Webfan::io4());
 		
+		$url = OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL)
+					    .OIDplus::baseConfig()->getValue('FRDLWEB_DNS_OVER_HTTPS_BASE_URI', 'dns-query');
+		$url = rtrim($url, '/ ').'/';
+		
+		
+		$actionDNSTesterResult = \Webfan::html()->compile(
+			sprintf(
+				'<component src="module:@frdl/dns-query" ns-url="%s"  ns-host="%s" ns-port="%s" emit-response="%s" />',
+				'https://'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'],
+				 OIDplus::baseConfig()->getValue('FRDLWEB_OID_DNS_ROOT_SERVER_HOST', 'oid.zone'),
+				 OIDplus::baseConfig()->getValue('FRDLWEB_OID_DNS_ROOT_SERVER_PORT', 53),
+				 'auto'
+				)
+		);
+		
+		OIDplus::invoke_shutdown();
+        echo $actionDNSTesterResult;
+		 die();	
+		*/
+		//OIDplus::handleLangArgument();
+		
+		$baseHref =(isset($_SERVER['HTTPS']) && \filter_var($_SERVER['HTTPS'], \FILTER_VALIDATE_BOOLEAN)
+			? 'https://'
+			: 'http://'
+				)
+			. $_SERVER['SERVER_NAME']
+			.\Helper::webUriRoot($_SERVER['DOCUMENT_ROOT'],false);		
+	/*	
+		$baseHref = rtrim(OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL), '/ ').'/';
+		*/
+
+		$static = OIDplus::gui()->generateContentPage('oidplus:dns');
+        $page_title_2 = $static['title'];
+        $static_icon = $static['icon'];
+        $static_content = $static['text'];
+		$page_title_1 = OIDplus::gui()->combine_systemtitle_and_pagetitle(OIDplus::config()->getValue('system_title'), $page_title_2);
+		$cont = OIDplus::gui()->showMainPage($page_title_1,$page_title_2, $static_icon, $static_content,[
+		  sprintf('<base href="%s">', $baseHref)	
 			
-		if (str_starts_with($requestOidplus, OIDplus::baseConfig()->getValue('FRDLWEB_DNS_OVER_HTTPS_BASE_URI', 'dns-query'))) {
-			
+		], 'oidplus:dns');		
+		OIDplus::invoke_shutdown();
+		echo $cont;
+		 die();	
+		/*		
+		if(substr($actionDNSTesterResult,0,1)!=='<'){
+		  die($actionDNSTesterResult);	
 		}
+		$Document = new \IvoPetkov\HTML5DOMDocument();
+		$Document->loadHTML($actionDNSTesterResult, \IvoPetkov\HTML5DOMDocument::ALLOW_DUPLICATE_IDS);
+		$cont = $Document->querySelector('body')->innerHTML;
+		
+	  $cont = OIDplus::gui()->showMainPage('DNS Tester', 'DNS over HTTPS', '', 
+											 $cont,
+											 array(), ''		
+		);	
+		
+	
+	
+ 
+		
+		
+		
+		//OIDplus::invoke_shutdown();
+		echo $cont;
+		die();*/
+	//	return true;
+	}//FRDLWEB_DNS_OVER_HTTPS_BASE_URI
 		
 		
 		if('bootstrap'===$ns && 'oid' === $id){
@@ -979,7 +1273,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 			die('<a href="'.$request.'">'.$request.'</a>');
 		}
 		
-		if (str_starts_with($requestOidplus, OIDplus::baseConfig()->getValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'rdap').'/')) {
+		if (str_starts_with($request, OIDplus::baseConfig()->getValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'rdap').'/')) {
 			$request
 				= substr($_SERVER['REQUEST_URI'], strlen(OIDplus::baseConfig()->getValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'rdap').'/'));
 			$request = trim($request,'/');			
@@ -1031,6 +1325,11 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 				   
 		public function restApiInfo(string $kind='html'): string {
 			$bPath = OIDplus::baseConfig()->getValue('FRDLWEB_OID_CONNECT_API_ROUTE', 'oid-connect');
+			
+			
+			$dnsPath = rtrim(OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL)
+					    .OIDplus::baseConfig()->getValue('FRDLWEB_DNS_OVER_HTTPS_BASE_URI', 'dns-query'), '/ ').'/';
+			
 		if ($kind === 'html') {
 			$struct = [
 				_L('@ Get') => [
@@ -1043,6 +1342,26 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 					]
 				],
 		 
+					
+				_L('@ Get Route for DnsOverHttps (Testing-)Endpoint') => [
+					'<b>GET</b> <a href="'.$dnsPath.'">'.$dnsPath.'</a>',
+					_L('Input parameters') => [
+						'<i>GET[dns] : DNS question message</i>'
+					],
+					_L('Output parameters') => [
+						'mixed...'
+					]
+				],		
+					_L('@ Post Route for DnsOverHttps (Testing-)Endpoint') => [
+					'<b>POST</b> '.$dnsPath,
+					_L('Input parameters') => [
+						'<i>application/dns-message DNS question message</i>'
+					],
+					_L('Output parameters') => [
+						'mixed...'
+					]
+				],					
+				
 				_L('@ Get RDAP for an Object') => [
 					'<b>GET</b> '.OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL)
 					    .OIDplus::baseConfig()->getValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'rdap')
