@@ -940,7 +940,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 
 		
 	public function getCacheKey($type, $name){
-		return 'rdap.2675-'.strlen($type).'.'.self::CACHE_VERSION.'-'. __FILE__ .'-'
+		return 'rdap.2sdf675-'.strlen($type).'.'.self::CACHE_VERSION.'-'. __FILE__ .'-'
 			.sha1($name).'l'.strlen($name).'-'.sha1($type);
 	}		
 				   
@@ -1045,7 +1045,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 			}      
 		}		
 		
-		$res = OIDplus::db()->query("select lo.url, lo.enabled, lo.validated, lu.root, lu.enabled, lu.validated from ###rdap_servers lo ".
+		$res = OIDplus::db()->query("select * from ###rdap_servers lo ".
 					                            "left join ###rdap_roots lu on lu.rdap_server_id = lo.id ".
 					                            "where lu.enabled = ? and lo.enabled = ? and lu.validated = ? and lo.validated = ? " .
 					                            "order by lo.url, lu.root desc", array(1,1,1,1));
@@ -1130,7 +1130,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 			try{
 			  $result = $client->dumpServices($namespace, true, true);	
 			}catch(\Exception $e){
-				
+				throw $e;
 				  $result = $client->dumpServices($namespace, false, true);	
 				
 			}
@@ -1158,7 +1158,8 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 			
 			try{
 			  $result = $client->dumpServices($namespace, false, true);	
-			}catch(\Exception $e){				
+			}catch(\Exception $e){	
+				throw $e;
 				  $result = $client->dumpServices($namespace, false, false);					
 			}			 
 			$item->set($result);
