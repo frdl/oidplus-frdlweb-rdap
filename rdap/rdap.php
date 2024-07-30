@@ -22,7 +22,7 @@
 use ViaThinkSoft\OIDplus\Core\OIDplus;
 use ViaThinkSoft\OIDplus\Core\OIDplusGui;
 use ViaThinkSoft\OIDplus\Core\OIDplusException;
-use ViaThinkSoft\OIDplus\Plugins\frdl\publicPages\oidplus_frdlweb_rdap\OIDplusRDAP;
+use Frdlweb\OIDplus\Plugins\PublicPages\RDAP\OIDplusRDAP;
 
 require_once __DIR__ . '/../../../../../includes/oidplus.inc.php';
 

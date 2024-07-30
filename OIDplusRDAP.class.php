@@ -19,13 +19,13 @@
  * limitations under the License.
  */
 
-namespace ViaThinkSoft\OIDplus\Plugins\frdl\publicPages\oidplus_frdlweb_rdap;
+namespace Frdlweb\OIDplus\Plugins\PublicPages\RDAP;
 
 use ViaThinkSoft\OIDplus\Core\OIDplus;
 use ViaThinkSoft\OIDplus\Core\OIDplusBaseClass;
 use ViaThinkSoft\OIDplus\Core\OIDplusObject;
-use ViaThinkSoft\OIDplus\Plugins\viathinksoft\publicPages\n000_objects\OIDplusPagePublicObjects;
-use ViaThinkSoft\OIDplus\Plugins\viathinksoft\publicPages\n100_whois\OIDplusOIDIP;
+use ViaThinkSoft\OIDplus\Plugins\PublicPages\Objects\OIDplusPagePublicObjects;
+use ViaThinkSoft\OIDplus\Plugins\PublicPages\Whois\OIDplusOIDIP;
 
 // phpcs:disable PSR1.Files.SideEffects
 \defined('INSIDE_OIDPLUS') or die;
@@ -63,7 +63,7 @@ class OIDplusRDAP extends OIDplusBaseClass {
 		$this->rdapCacheExpires = OIDplus::baseConfig()->getValue('RDAP_CACHE_EXPIRES', 60 * 3 );
 	}
 
-	
+
 	public function callRdapExtensions($out, $namespace, $id, $obj, $query){
 		foreach(OIDplus::getAllPlugins() as $plugin){
 			if ($plugin instanceof INTF_OID_1_3_6_1_4_1_37553_8_1_8_8_53354196964_1276945) {
@@ -71,10 +71,10 @@ class OIDplusRDAP extends OIDplusBaseClass {
 			}
 		}
 		return $out;
-	}	
-	
-	
-	
+	}
+
+
+
 	/**
 	 * @param string $query
 	 * @return array
@@ -237,7 +237,7 @@ class OIDplusRDAP extends OIDplusBaseClass {
 			$out['oidplus_oidip'] = json_decode($oidIPJSON);
 		}
 
-		
+
 		$out = $this->callRdapExtensions($out, $obj::ns(), $obj->nodeId(false), $obj, $query);
 		$out['notices']=[
 			 [

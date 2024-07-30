@@ -19,7 +19,7 @@
  * limitations under the License.
  */
 
-namespace ViaThinkSoft\OIDplus\Plugins\frdl\publicPages\oidplus_frdlweb_rdap;
+namespace Frdlweb\OIDplus\Plugins\PublicPages\RDAP;
 
 interface INTF_OID_1_3_6_1_4_1_37553_8_1_8_8_53354196964_1276945 {
 
