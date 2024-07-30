@@ -17,22 +17,22 @@
  * limitations under the License.
  */
 
-namespace Frdlweb\OIDplus;
+namespace ViaThinkSoft\OIDplus\Plugins\frdl\publicPages\oidplus_frdlweb_rdap;
 
-use ViaThinkSoft\OIDplus\OIDplusGui;
-use ViaThinkSoft\OIDplus\OIDplusPagePublicAttachments;
-use ViaThinkSoft\OIDplus\INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_2;
-use ViaThinkSoft\OIDplus\OIDplus;
-use ViaThinkSoft\OIDplus\OIDplusConfig;
-use ViaThinkSoft\OIDplus\OIDplusObjectTypePlugin;
-use ViaThinkSoft\OIDplus\OIDplusPagePluginPublic;
-use ViaThinkSoft\OIDplus\OIDplusObject;
-use ViaThinkSoft\OIDplus\OIDplusException;
-use ViaThinkSoft\OIDplus\OIDplusOid;
-use ViaThinkSoft\OIDplus\OIDplusRA;
-use ViaThinkSoft\OIDplus\OIDplusNaturalSortedQueryResult;
-use ViaThinkSoft\OIDplus\OIDplusOIDIP;
-
+use ViaThinkSoft\OIDplus\Core\OIDplus;
+use ViaThinkSoft\OIDplus\Core\OIDplusConfig;
+use ViaThinkSoft\OIDplus\Core\OIDplusPagePluginPublic;
+use ViaThinkSoft\OIDplus\Core\OIDplusObject;
+use ViaThinkSoft\OIDplus\Core\OIDplusException;
+use ViaThinkSoft\OIDplus\Plugins\viathinksoft\adminPages\n010_notifications\INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_8;
+use ViaThinkSoft\OIDplus\Plugins\viathinksoft\adminPages\n010_notifications\OIDplusNotification;
+use ViaThinkSoft\OIDplus\Plugins\viathinksoft\objectTypes\oid\WeidOidConverter;
+use ViaThinkSoft\OIDplus\Plugins\viathinksoft\publicPages\n000_objects\INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_2;
+use ViaThinkSoft\OIDplus\Plugins\viathinksoft\publicPages\n000_objects\INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_3;
+use ViaThinkSoft\OIDplus\Plugins\viathinksoft\publicPages\n000_objects\INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_7;
+use ViaThinkSoft\OIDplus\Plugins\viathinksoft\publicPages\n002_rest_api\INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_9;
+use ViaThinkSoft\OIDplus\Plugins\viathinksoft\publicPages\n100_whois\INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_4;
+use ViaThinkSoft\OIDplus\Plugins\viathinksoft\publicPages\n100_whois\OIDplusOIDIP;
 
 use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 
@@ -41,14 +41,14 @@ use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 // phpcs:enable PSR1.Files.SideEffects
 
 class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
-	implements \ViaThinkSoft\OIDplus\INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_2, /* modifyContent */
-	             \ViaThinkSoft\OIDplus\INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_9,  //API
-
-                   \ViaThinkSoft\OIDplus\INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_7,//public function getAlternativesForQuery(string $id): array;
-	 
-	           \ViaThinkSoft\OIDplus\INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_3, /* beforeObject*, afterObject* */
-	           \ViaThinkSoft\OIDplus\INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_4, /* whois*Attributes */
-	           \ViaThinkSoft\OIDplus\INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_8  /* getNotifications */
+	implements
+	INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_2, /* modifyContent */
+	INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_9, //API
+	INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_7, //public function getAlternativesForQuery(string $id): array;
+	INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_3, /* beforeObject*, afterObject* */
+	INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_4, /* whois*Attributes */
+	INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_8, /* getNotifications */
+	INTF_OID_1_3_6_1_4_1_37553_8_1_8_8_53354196964_1276945 /*rdapExtensions*/
 {
      const DEFAULT_RDAP_BASEPATH = 'rdap';
 	 const DEFAULT_RDAP_FALLBACK_SERVER = 'https://rdap.frdlweb.de';
@@ -78,7 +78,7 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 				$htmlmsg = 'Please install the Plugin from composer OR into plugins/frdl/objectTypes/rdap/ from this repository: '
 					.'https://github.com/frdl/oidplus-rdap-service-object-type-plugin (contact the site adminstrator to do it)!!!';
 				$error .= ': ' . $htmlmsg;		
-			$notifications[] = new \ViaThinkSoft\OIDplus\OIDplusNotification('ERR', $error);  
+			$notifications[] = new OIDplusNotification('ERR', $error);
 		} 	
 		
 		
@@ -88,7 +88,7 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 				$htmlmsg = 'Please install the IO4 Plugin into plugins/frdl/adminPages/io4/ from this repository: '
 					.'https://github.com/frdl/oidplus-io4-bridge-plugin (contact the site adminstrator to do it)!!!';
 				$error .= ': ' . $htmlmsg;		
-			$notifications[] = new \ViaThinkSoft\OIDplus\OIDplusNotification('ERR', $error);
+			$notifications[] = new OIDplusNotification('ERR', $error);
 		}
 		
 		
@@ -98,7 +98,7 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 				$htmlmsg = 'The RDAP-Plugin DB-Structure changed. If the table {prefix}_attributes is not needed by another plugin  '
 					.' you can delete it (or migrate if you have data in it what is not expected)!';
 				$error .= ': ' . $htmlmsg;		
-			$notifications[] = new \ViaThinkSoft\OIDplus\OIDplusNotification('INFO', $error);			
+			$notifications[] = new OIDplusNotification('INFO', $error);
 		}
 		
 		
@@ -109,7 +109,7 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 				$error = _L('The Allocations Plugin is suggested!');
 				$htmlmsg = 'Please install the OnjectType "NS" Plugin! You can contact the Frdleb support for help.';
 				$error .= ': ' . $htmlmsg;		
-			$notifications[] = new \ViaThinkSoft\OIDplus\OIDplusNotification('INFO', $error);  
+			$notifications[] = new OIDplusNotification('INFO', $error);
 		} 		
 		
 		 
@@ -120,7 +120,7 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 				$error = _L('The Tenancy Plugin is suggested!');
 				$htmlmsg = 'You can install the Tenancy Plugin to provide OID-Connect Provider Services for Domains/Multi-Instances/Tenancy-Containers.';
 				$error .= ': ' . $htmlmsg;		
-			$notifications[] = new \ViaThinkSoft\OIDplus\OIDplusNotification('INFO', $error);  
+			$notifications[] = new OIDplusNotification('INFO', $error);
 		} 			
 		
 		$rdapPlugin = OIDplus::getPluginByOid("1.3.6.1.4.1.37476.9000.108.19361.16043");		         
@@ -130,7 +130,7 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 				$htmlmsg = 'Please install the Plugin from composer OR into plugins/frdl/publicPages/cdn/ from this repository: '
 					.'https://github.com/frdl/oidplus-frdljs-cdn-proxy-plugin (contact the site adminstrator to do it)!!!';
 				$error .= ': ' . $htmlmsg;		
-			$notifications[] = new \ViaThinkSoft\OIDplus\OIDplusNotification('ERR', $error);  
+			$notifications[] = new OIDplusNotification('ERR', $error);
 		} 			
 		
 		/*
@@ -156,7 +156,7 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 				$error .= ': ' . $htmlmsg;
 			}
 			if ($error) {
-				$notifications[] = new \ViaThinkSoft\OIDplus\OIDplusNotification('WARN', $error);
+				$notifications[] = new OIDplusNotification('WARN', $error);
 			}
 	//	}
 	*/
@@ -173,9 +173,9 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 	 * @param string $icon
 	 * @param string $text
 	 * @return void
-	 * @throws \ViaThinkSoft\OIDplus\OIDplusException
+	 * @throws OIDplusException
 	 */
-	public function modifyContent(string $id, string &$title, string &$icon, string &$text) {
+	public function modifyContent(string $id, string &$title, string &$icon, string &$text): void {
 		
 		$isCentral = OIDplus::baseConfig()->getValue('TENANT_APP_ID_OID') === '1.3.6.1.4.1.37476.30.9.1494410075'  
 			   && OIDplus::baseConfig()->getValue('TENANT_OBJECT_ID_OID' ) === '1.3.6.1.4.1.37553';
@@ -259,7 +259,7 @@ HTMLCODE;
 	  
 	    if('weid' === $ns){
 			$weid = $ns.':'.$id;
-		   $id = \Frdl\Weid\WeidOidConverter::weid2oid($weid);
+		   $id = WeidOidConverter::weid2oid($weid);
 		      //  print_r([$weid, \oid_valid_dotnotation($id, false, true, 0),$ns,$id,$alt]);die();
 			$ns = 'oid';
 	    }
@@ -275,7 +275,7 @@ HTMLCODE;
 	       
 	    //    $alt[] = $id.'@alias.webfan.de'; 
 	   
-		   $weid = \Frdl\Weid\WeidOidConverter::oid2weid($id);
+		   $weid = WeidOidConverter::oid2weid($id);
 		   $weidHostedName = str_replace(':', '--', $weid);
 		   if(!empty($weid)){
 			//   $alt[] = $weidHostedName.'.weid.oid.zone'; 
@@ -300,7 +300,7 @@ HTMLCODE;
 	   return $alt;
    }
 				   
-	public function gui(string $id, array &$out, bool &$handled) {
+	public function gui(string $id, array &$out, bool &$handled): void {
 	//	var_dump($this->mailparse_rfc822_parse_addresses($out['text']));
 	//	die();
 	
@@ -376,7 +376,7 @@ HTMLCODE;
 				   
 				   
 	
-	public function init($html = true) {
+	public function init($html = true): void {
 		$this->rdapServer_configdir = __DIR__.\DIRECTORY_SEPARATOR.'rdap-server';
 		$this->rdapServer_bootfile = $this->rdapServer_configdir.\DIRECTORY_SEPARATOR.'bootstrap.oid.json';
 		
@@ -844,7 +844,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 <xs:element type="xs:string" name="attribute-value" />
 </xs:schema>
 	 */
-	public function whoisObjectAttributes(string $id, array &$out) {
+	public function whoisObjectAttributes(string $id, array &$out): void {
 		$xmlns = 'oidplus-rdap-plugin';
 		$xmlschema = 'urn:oid:1.3.6.1.4.1.37476.2.5.2.4.1.95.1';
 		$xmlschemauri = OIDplus::webpath(__DIR__.'/attributes.xsd',OIDplus::PATH_ABSOLUTE_CANONICAL);
@@ -923,7 +923,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 	 * @param array $out
 	 * @return void
 	 */
-	public function whoisRaAttributes(string $email, array &$out) {
+	public function whoisRaAttributes(string $email, array &$out): void {
 	
 	}
 
@@ -1456,7 +1456,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 	
 
 
-	public function restApiCall(string $requestMethod, string $endpoint, array $json_in) : array|false {
+	public function restApiCall(string $requestMethod, string $endpoint, array $json_in)/*: array|false*/ {
 		if('bootstrap/services/oid.json' === $endpoint ){
 			     $services = $this->rdapBootstrapServices('oid');
 			     http_response_code(200);
@@ -1761,7 +1761,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 				   
 				   
 				   
-  public function beforeObjectDelete(string $id) {}
+  public function beforeObjectDelete(string $id): void {}
 
 	/**
 	 * Implements interface INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_3
@@ -1769,7 +1769,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 	 * @return void
 	 * @throws OIDplusException
 	 */
-	public function afterObjectDelete(string $id) {
+	public function afterObjectDelete(string $id): void {
 		// Delete the attachment folder including all files in it (note: Subfolders are not possible)
 //		OIDplus::db()->query("delete from ###attributes where oid = ?", array($id));
 		//unlink($this->rdapServer_bootfile);
@@ -1791,7 +1791,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 	 * @param array $params
 	 * @return void
 	 */
-	public function beforeObjectUpdateSuperior(string $id, array &$params) {}
+	public function beforeObjectUpdateSuperior(string $id, array &$params): void {}
 
 	/**
 	 * Implements interface INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_3
@@ -1799,7 +1799,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 	 * @param array $params
 	 * @return void
 	 */
-	public function afterObjectUpdateSuperior(string $id, array &$params) {}
+	public function afterObjectUpdateSuperior(string $id, array &$params): void {}
 
 	/**
 	 * Implements interface INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_3
@@ -1807,7 +1807,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 	 * @param array $params
 	 * @return void
 	 */
-	public function beforeObjectUpdateSelf(string $id, array &$params) {}
+	public function beforeObjectUpdateSelf(string $id, array &$params): void {}
 
 	/**
 	 * Implements interface INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_3
@@ -1815,7 +1815,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 	 * @param array $params
 	 * @return void
 	 */
-	public function afterObjectUpdateSelf(string $id, array &$params) {}
+	public function afterObjectUpdateSelf(string $id, array &$params): void {}
 
 	/**
 	 * Implements interface INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_3
@@ -1823,7 +1823,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 	 * @param array $params
 	 * @return void
 	 */
-	public function beforeObjectInsert(string $id, array &$params) {}
+	public function beforeObjectInsert(string $id, array &$params): void {}
 
 	/**
 	 * Implements interface INTF_OID_1_3_6_1_4_1_37476_2_5_2_3_3
@@ -1831,7 +1831,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 	 * @param array $params
 	 * @return void
 	 */
-	public function afterObjectInsert(string $id, array &$params) {}
+	public function afterObjectInsert(string $id, array &$params): void {}
 			   
 	
 }

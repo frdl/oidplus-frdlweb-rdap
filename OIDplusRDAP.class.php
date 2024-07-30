@@ -19,13 +19,13 @@
  * limitations under the License.
  */
 
-namespace Frdlweb\OIDplus;
+namespace ViaThinkSoft\OIDplus\Plugins\frdl\publicPages\oidplus_frdlweb_rdap;
 
-use ViaThinkSoft\OIDplus\OIDplus;
-use ViaThinkSoft\OIDplus\OIDplusBaseClass;
-use ViaThinkSoft\OIDplus\OIDplusObject;
-use ViaThinkSoft\OIDplus\OIDplusOIDIP;
-use ViaThinkSoft\OIDplus\OIDplusPagePublicObjects;
+use ViaThinkSoft\OIDplus\Core\OIDplus;
+use ViaThinkSoft\OIDplus\Core\OIDplusBaseClass;
+use ViaThinkSoft\OIDplus\Core\OIDplusObject;
+use ViaThinkSoft\OIDplus\Plugins\viathinksoft\publicPages\n000_objects\OIDplusPagePublicObjects;
+use ViaThinkSoft\OIDplus\Plugins\viathinksoft\publicPages\n100_whois\OIDplusOIDIP;
 
 // phpcs:disable PSR1.Files.SideEffects
 \defined('INSIDE_OIDPLUS') or die;
@@ -54,7 +54,7 @@ class OIDplusRDAP extends OIDplusBaseClass {
 	protected $rdapCacheExpires;
 
 	/**
-	 * @throws \ViaThinkSoft\OIDplus\OIDplusException
+	 * @throws \ViaThinkSoft\OIDplus\Core\OIDplusException
 	 */
 	public function __construct() {
 		$this->rdapBaseUri = OIDplus::baseConfig()->getValue('RDAP_BASE_URI', OIDplus::webpath() );
@@ -64,14 +64,12 @@ class OIDplusRDAP extends OIDplusBaseClass {
 	}
 
 	
-	public function rdapExtensions($out, $namespace, $id, $obj, $query){
-		foreach(OIDplus::getAllPlugins() as $pkey => $plugin){
-		
-			if(method_exists($plugin, 'rdapExtensions')){
-				$out = \call_user_func_array([$plugin, 'rdapExtensions'], [$out, $namespace, $id, $obj, $query]);
+	public function callRdapExtensions($out, $namespace, $id, $obj, $query){
+		foreach(OIDplus::getAllPlugins() as $plugin){
+			if ($plugin instanceof INTF_OID_1_3_6_1_4_1_37553_8_1_8_8_53354196964_1276945) {
+				$out = $plugin->rdapExtensions($out, $namespace, $id, $obj, $query);
 			}
 		}
-		
 		return $out;
 	}	
 	
@@ -80,7 +78,7 @@ class OIDplusRDAP extends OIDplusBaseClass {
 	/**
 	 * @param string $query
 	 * @return array
-	 * @throws \ViaThinkSoft\OIDplus\OIDplusException
+	 * @throws \ViaThinkSoft\OIDplus\Core\OIDplusException
 	 */
 	public function rdapQuery(string $query): array {
 		$query = str_replace('oid:.', 'oid:', $query);
@@ -240,7 +238,7 @@ class OIDplusRDAP extends OIDplusBaseClass {
 		}
 
 		
-		$out = $this->rdapExtensions($out, $obj::ns(), $obj->nodeId(false), $obj, $query);	
+		$out = $this->callRdapExtensions($out, $obj::ns(), $obj->nodeId(false), $obj, $query);
 		$out['notices']=[
 			 [
 				"title" => "Authentication Policy",

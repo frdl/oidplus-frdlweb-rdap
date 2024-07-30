@@ -2,7 +2,7 @@
 
 /*
  * OIDplus 2.0 RDAP
- * Copyright 2019 - 2022 Daniel Marschall, ViaThinkSoft
+ * Copyright 2019 - 2024 Daniel Marschall, ViaThinkSoft
  * Authors               Daniel Marschall, ViaThinkSoft
  *                       Till Wehowski, Frdlweb
  *
@@ -19,10 +19,10 @@
  * limitations under the License.
  */
 
-use ViaThinkSoft\OIDplus\OIDplus;
-use ViaThinkSoft\OIDplus\OIDplusGui;
-use ViaThinkSoft\OIDplus\OIDplusException;
-use Frdlweb\OIDplus\OIDplusRDAP;
+use ViaThinkSoft\OIDplus\Core\OIDplus;
+use ViaThinkSoft\OIDplus\Core\OIDplusGui;
+use ViaThinkSoft\OIDplus\Core\OIDplusException;
+use ViaThinkSoft\OIDplus\Plugins\frdl\publicPages\oidplus_frdlweb_rdap\OIDplusRDAP;
 
 require_once __DIR__ . '/../../../../../includes/oidplus.inc.php';
 
