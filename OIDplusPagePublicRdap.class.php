@@ -660,7 +660,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 		return $this->_cache;
 	}
 
-	public function rdapExtensions($out, $namespace, $id, $obj, $query) : array {
+	public function rdapExtensions(array $out, string $namespace, string $id, $obj, string $query) : array; {
 		$ns = $namespace;
 		$n = [
 			$namespace,
