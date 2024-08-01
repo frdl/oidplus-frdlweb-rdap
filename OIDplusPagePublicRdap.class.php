@@ -68,7 +68,7 @@ class OIDplusPagePublicRdap extends OIDplusPagePluginPublic
 	 * @param string|null $user
 	 * @return array  returns array of array($severity, $htmlMessage)
 	 */
-	public function getNotifications(string $user=null): array {
+	public function getNotifications(?string $user=null): array {
 		$notifications = array();
 
 		$rdapPlugin = OIDplus::getPluginByOid("1.3.6.1.4.1.37476.9000.108.1276945.1654921702");
@@ -1589,7 +1589,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 
 
 
-		public function tree(array &$json, string $ra_email=null, bool $nonjs=false, string $req_goto=''): bool {
+		public function tree(array &$json, ?string $ra_email=null, bool $nonjs=false, string $req_goto=''): bool {
 			return false;
 			/*
 		if ($nonjs) {
