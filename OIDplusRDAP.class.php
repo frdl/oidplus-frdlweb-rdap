@@ -25,7 +25,6 @@ use ViaThinkSoft\OIDplus\Core\OIDplus;
 use ViaThinkSoft\OIDplus\Core\OIDplusBaseClass;
 use ViaThinkSoft\OIDplus\Core\OIDplusObject;
 use ViaThinkSoft\OIDplus\Plugins\PublicPages\Objects\OIDplusPagePublicObjects;
-use ViaThinkSoft\OIDplus\Plugins\PublicPages\Whois\OIDplusOIDIP;
 
 // phpcs:disable PSR1.Files.SideEffects
 \defined('INSIDE_OIDPLUS') or die;
@@ -64,7 +63,15 @@ class OIDplusRDAP extends OIDplusBaseClass {
 	}
 
 
-	public function callRdapExtensions($out, $namespace, $id, $obj, $query){
+	/**
+	 * @param array $out
+	 * @param string $namespace
+	 * @param string $id
+	 * @param OIDplusObject $obj
+	 * @param string $query
+	 * @return array
+	 */
+	public function callRdapExtensions(array $out, string $namespace, string $id, OIDplusObject $obj, string $query): array {
 		foreach(OIDplus::getAllPlugins() as $plugin){
 			if ($plugin instanceof INTF_OID_1_3_6_1_4_1_37553_8_1_8_8_53354196964_1276945) {
 				$out = $plugin->rdapExtensions($out, $namespace, $id, $obj, $query);
