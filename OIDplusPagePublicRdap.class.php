@@ -668,51 +668,9 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 		];
 
 
-	if ( !is_null(OIDplus::getPluginByOid("1.3.6.1.4.1.37476.2.5.2.4.1.100"))) { // OIDplusPagePublicWhois
-			$oidIPUrl = OIDplus::webpath().'plugins/viathinksoft/publicPages/100_whois/whois/webwhois.php?query='.urlencode($query);
-
-			$oidip_generator = new OIDplusOIDIP();
-
-		//	list($oidIP, $dummy_content_type) = $oidip_generator->oidipQuery($query);
-
-			$out['remarks'][] = [
-				"title" => "OID-IP Result",
-				"description" => [
-					sprintf("Additional %s %s was added.", 'OID-IP Result info from RDAP-plugin', "1.3.6.1.4.1.37476.2.5.2.4.1.100"),
-				],
-				"links" => [
-						[
-							"href"=> $oidIPUrl,
-							"type"=> "text/plain",
-							"title"=> sprintf("OIDIP Result for the %s %s (Plaintext)", $ns, $n[1]),
-							"value"=> $oidIPUrl,
-							"rel"=> "alternate"
-						],
-						[
-							"href"=> "$oidIPUrl\$format=json",
-							"type"=> "application/json",
-							"title"=> sprintf("OIDIP Result for the %s %s (JSON)", $ns, $n[1]),
-							"value"=> "$oidIPUrl\$format=json",
-							"rel"=> "alternate"
-						],
-						[
-							"href"=> "$oidIPUrl\$format=xml",
-							"type"=> "application/xml",
-							"title"=> sprintf("OIDIP Result for the %s %s (XML)", $ns, $n[1]),
-							"value"=> "$oidIPUrl\$format=xml",
-							"rel"=> "alternate"
-						]
-					]
-				];
-
-			list($oidIPJSON, $dummy_content_type) = $oidip_generator->oidipQuery("$query\$format=json");
-			$out['oidplus_oidip'] = json_decode($oidIPJSON);
-			$out['rdapConformance'][]='oidplus_oidip';
-			$out['oidplus_oidip_properties'] = [
-				                             "\$schemma" ,
-											 "oidip",
-
-											];
+		if ( !is_null(OIDplus::getPluginByOid("1.3.6.1.4.1.37476.2.5.2.4.1.100"))) { // OIDplusPagePublicWhois
+			
+			// DM 03.08.2024 : Code moved to OID-IP plugin (SVN Rev 1540)
 
 		}else{
 		   //no oidplus_oidip plugin
