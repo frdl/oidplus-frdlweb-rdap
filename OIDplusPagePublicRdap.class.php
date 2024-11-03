@@ -327,17 +327,18 @@ HTMLCODE;
 	
 	
 			
-			
+			/*
 			
 		$io4Plugin = OIDplus::getPluginByOid("1.3.6.1.4.1.37476.9000.108.19361.24196");		         
 		if (!is_null($io4Plugin) && \is_callable([$io4Plugin,'getWebfat']) ) {
 		   //  $io4Plugin->getWebfat(true,false);	      
-			 $io4Plugin->bootIO4( $io4Plugin->getWebfat(true,false) );	      
+		//	 $io4Plugin->bootIO4( $io4Plugin->getWebfat(true,false) );	      
 	       //   list($Stubrunner, $container) =    $io4Plugin->bootIO4(   null );	      
+			\io4\withFacades();
 		}else{
 			throw new OIDplusException(sprintf('You have to install the dependencies of the plugin package %s via composer OR you need the plugin %s to be installed in OIDplus and its remote-autoloader enabled. Read about how to use composer with OIDplus at: https://weid.info/plus/ .', 'https://github.com/frdl/oidplus-frdlweb-rdap', 'https://github.com/frdl/oidplus-io4-bridge-plugin'));
 		}			
-	 
+	 */
 	//	 ob_end_clean();
 		//echo \Webfan\Webfat::class.'exists: '. \get_class(\Webfan::io4());
 		
@@ -358,7 +359,8 @@ HTMLCODE;
 		 	->save()
 			;
 		*/	
-			$actionDNSTesterResult = \Webfan::html()->compile(
+			if(!class_exists(\Helper::class))\io4\withFacades();
+			$actionDNSTesterResult = \Webfan::html( )->compile(
 			sprintf(
 				'<component src="module:@frdl/dns-query" ns-url="%s"  ns-host="%s" ns-port="%s" emit-response="%s" />',
 				'https://'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'],
@@ -567,7 +569,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 			OIDplus::baseConfig()->setValue('FRDLWEB_RDAP_FALLBACK_SERVER', $value );
 		});
 		 
-	 
+	 /*
 	  if(!class_exists(\Webfan\RDAP\Rdap::class)){
 		$io4Plugin = OIDplus::getPluginByOid("1.3.6.1.4.1.37476.9000.108.19361.24196");		         
 		if (!is_null($io4Plugin) && \is_callable([$io4Plugin,'getWebfat']) ) {
@@ -576,7 +578,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 			throw new OIDplusException(sprintf('You have to install the dependencies of the plugin package %s via composer OR you need the plugin %s to be installed in OIDplus and its remote-autoloader enabled. Read about how to use composer with OIDplus at: https://weid.info/plus/ .', 'https://github.com/frdl/oidplus-frdlweb-rdap', 'https://github.com/frdl/oidplus-io4-bridge-plugin'));
 		}
 	  }//!exists \Webfan\RDAP\Rdap::class
-		
+		*/
 		OIDplus::config()->prepareConfigKey('FRDLWEB_OID_DNS_ROOT_SERVER_HOST', 'The OID DNS Root Nameserver Server Host ( set it to "oid.zone" !)',                      "oid.zone", OIDplusConfig::PROTECTION_EDITABLE, function ($value) {
 		  
 			 ///	OIDplus::baseConfig()->setValue('FRDLWEB_OID_DNS_ROOT_SERVER_HOST', $value );
@@ -1005,8 +1007,8 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 		
 		$res = OIDplus::db()->query("select * from ###rdap_servers lo ".
 					                            "left join ###rdap_roots lu on lu.rdap_server_id = lo.id ".
-					                            "where lu.enabled = ? and lo.enabled = ? and lu.validated = ? and lo.validated = ? " .
-					                            "order by lo.url, lu.root desc", array(1,1,1,1));
+					                            "where lu.enabled = ? and lo.enabled = ? and lu.validated > 0 and lo.validated > 0 " .
+					                            "order by lo.url, lu.root desc", array(1,1));
 		
 		
 					if ($res->any()) { 
@@ -1170,10 +1172,10 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 		 $rel_url_original =substr($_SERVER['REQUEST_URI'], strlen(OIDplus::webpath(null, OIDplus::PATH_RELATIVE_TO_ROOT)));
 	if (str_starts_with($requestOidplus,
 						'/'. trim(OIDplus::baseConfig()->getValue('FRDLWEB_DNS_OVER_HTTPS_BASE_URI', 'dns-query'), '/ ').'/')) {
-	    	
+	   /* 	
 		$io4Plugin = OIDplus::getPluginByOid("1.3.6.1.4.1.37476.9000.108.19361.24196");		         
 		if (!is_null($io4Plugin) && \is_callable([$io4Plugin,'getWebfat']) ) {
-		  $Stunrunner = $io4Plugin->getWebfat(true,false);	     
+		  $Stunrunner = OIDplus::getPluginByOid("1.3.6.1.4.1.37476.9000.108.19361.24196")->getWebfat(true,false);	     
 			 $container = $Stunrunner->getAsContainer(null); 
 		//	 $io4Plugin->bootIO4( $io4Plugin->getWebfat(true,false) );	      		    
 			//list($Stubrunner, $container) = $io4Plugin->bootIO4( null  );	
@@ -1182,7 +1184,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 			throw new OIDplusException(sprintf('You have to install the dependencies of the plugin package %s via composer OR you need the plugin %s to be installed in OIDplus and its remote-autoloader enabled. Read about how to use composer with OIDplus at: https://weid.info/plus/ .', 'https://github.com/frdl/oidplus-frdlweb-rdap', 'https://github.com/frdl/oidplus-io4-bridge-plugin'));
 		}	
 	
-	 /*
+	 
 		ob_end_clean();
 		//echo \Webfan\Webfat::class.'exists: '. \get_class(\Webfan::io4());
 		
@@ -1206,16 +1208,17 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 		 die();	
 		*/
 		//OIDplus::handleLangArgument();
-	
+	     /*	if(!class_exists(\Helper::class))\io4\withFacades();
+		
 		$baseHref =(isset($_SERVER['HTTPS']) && \filter_var($_SERVER['HTTPS'], \FILTER_VALIDATE_BOOLEAN)
 			? 'https://'
 			: 'http://'
 				)
 			. $_SERVER['SERVER_NAME']
 			.\Helper::webUriRoot($_SERVER['DOCUMENT_ROOT'],false);		
-	/*	
-		$baseHref = rtrim(OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL), '/ ').'/';
-		*/
+	
+	//	$baseHref = rtrim(OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL), '/ ').'/';
+		
 
 		$static = OIDplus::gui()->generateContentPage('oidplus:dns');
         $page_title_2 = $static['title'];
@@ -1229,6 +1232,47 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 		OIDplus::invoke_shutdown();
 		echo $cont;
 		 die();	
+	*/	
+			
+		//if(!class_exists(\Helper::class))
+			\io4\withFacades();
+		   //  $Stunrunner = OIDplus::getPluginByOid("1.3.6.1.4.1.37476.9000.108.19361.24196")->getWebfat(true,false);	     
+			//$actionDNSTesterResult = (new \Webfan\Accessor($Stunrunner->getAsContainer(null)))->html( 1 )
+		  $HtmlCompiler = \io4\container()->get('HtmlCompiler') ;
+		 
+		$actionDNSTesterResult = $HtmlCompiler->process(
+			sprintf(
+				'<component src="module:@frdl/dns-query" ns-url="%s"  ns-host="%s" ns-port="%s" emit-response="%s" />',
+				'https://'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'],
+				 OIDplus::baseConfig()->getValue('FRDLWEB_OID_DNS_ROOT_SERVER_HOST', 'oid.zone'),
+				 OIDplus::baseConfig()->getValue('FRDLWEB_OID_DNS_ROOT_SERVER_PORT', 53),
+				 'false'
+				)
+		);
+		
+	$baseHref =(isset($_SERVER['HTTPS']) && \filter_var($_SERVER['HTTPS'], \FILTER_VALIDATE_BOOLEAN)
+			? 'https://'
+			: 'http://'
+				)
+			. $_SERVER['SERVER_NAME']
+			.\Helper::webUriRoot($_SERVER['DOCUMENT_ROOT'],false);		
+	
+	//	$baseHref = rtrim(OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL), '/ ').'/';
+		
+
+		//$static = $actionDNSTesterResult;//OIDplus::gui()->generateContentPage('oidplus:dns');
+        $page_title_2 ='DNS Test for OID.ZONE (s)';// $static['title'];
+        $static_icon ='';// $static['icon'];
+        $static_content = $actionDNSTesterResult;//$static['text'];
+		$page_title_1 = OIDplus::gui()->combine_systemtitle_and_pagetitle(OIDplus::config()->getValue('system_title'), $page_title_2);
+		$cont = OIDplus::gui()->showMainPage($page_title_1,$page_title_2, $static_icon, $static_content,[
+		  sprintf('<base href="%s">', $baseHref)	
+			
+		], 'oidplus:dns');		
+		//OIDplus::invoke_shutdown();
+		echo $cont;
+		 die();		
+		
 		/*		
 		if(substr($actionDNSTesterResult,0,1)!=='<'){
 		  die($actionDNSTesterResult);	
@@ -1325,100 +1369,24 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 		return false;
 	}				   
 				   
-		public function restApiInfo(string $kind='html'): string {
-			$bPath = OIDplus::baseConfig()->getValue('FRDLWEB_OID_CONNECT_API_ROUTE', 'oid-connect');
-			
-			
-			$dnsPath = rtrim(OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL)
-					    .OIDplus::baseConfig()->getValue('FRDLWEB_DNS_OVER_HTTPS_BASE_URI', 'dns-query'), '/ ').'/';
-			
-		if ($kind === 'html') {
-			$struct = [
-				_L('@ Get') => [
-					'<b>GET</b> '.OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL).'rest/v1/'.$bPath.'/<abbr title="'._L('e.g. %1', '@/oid:2.999').'">[id]</abbr>',
-					_L('Input parameters') => [
-						'<i>'._L('None').'</i>'
-					],
-					_L('Output parameters') => [
-						'mixed...'
-					]
-				],
-		 
-					
-				_L('@ Get Route for DnsOverHttps (Testing-)Endpoint') => [
-					'<b>GET</b> <a href="'.$dnsPath.'">'.$dnsPath.'</a>',
-					_L('Input parameters') => [
-						'<i>GET[dns] : DNS question message</i>'
-					],
-					_L('Output parameters') => [
-						'mixed...'
-					]
-				],		
-					_L('@ Post Route for DnsOverHttps (Testing-)Endpoint') => [
-					'<b>POST</b> '.$dnsPath,
-					_L('Input parameters') => [
-						'<i>application/dns-message DNS question message</i>'
-					],
-					_L('Output parameters') => [
-						'mixed...'
-					]
-				],					
-				
-				_L('@ Get RDAP for an Object') => [
-					'<b>GET</b> '.OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL)
-					    .OIDplus::baseConfig()->getValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'rdap')
-					   .'/<abbr title="'._L('Namespace/ObejctClass: e.g. %1', 'oid').'">[ns]</abbr>/<abbr title="'._L('ID: e.g. %1', '2.999').'">[id]</abbr>',
-					_L('Input parameters') => [
-						'<i>'._L('None').'</i>'
-					],
-					_L('Output parameters') => [
-						'mixed...'
-					]
-				],
-				
-	
-				_L('@ Get DATA for Bootstrap RDAP OID Services of this node') => [
-					'<b>GET</b> <a href="'.OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL).'rest/v1/bootstrap/services/oid.json" target="_blank">'.OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL).'rest/v1/bootstrap/services/oid.json</a>',
-					_L('Input parameters') => [
-						'<i>'._L('None').'</i>'
-					],
-					_L('Output parameters') => [
-						'array'
-					]
-				],
-				
-				_L('@ Get WRAP for Bootstrap RDAP OID Services') => [
-					'<b>GET</b> <a href="'.OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL)
-					    .OIDplus::baseConfig()->getValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'rdap')
-					   .'/bootstrap/oid" target="_blank">'.OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL)
-					    .OIDplus::baseConfig()->getValue('FRDLWEB_RDAP_RELATIVE_URI_BASEPATH', 'rdap')
-					   .'/bootstrap/oid</a>',
-					_L('Input parameters') => [
-						'<i>'._L('None').'</i>'
-					],
-					_L('Output parameters') => [
-						'array'
-					]
-				],				
-	
-				_L('@ Get DATA for Bootstrap RDAP OID Services') => [
-					'<b>GET</b> <a href="'.OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL).'rest/v1/bootstrap/root/oid.json" target="_blank">'.OIDplus::webpath(null,OIDplus::PATH_ABSOLUTE_CANONICAL).'rest/v1/bootstrap/root/oid.json</a>',
-					_L('Input parameters') => [
-						'<i>'._L('None').'</i>'
-					],
-					_L('Output parameters') => [
-						'array'
-					]
-				],	
- 
-			];
-			return array_to_html_ul_li($struct);
+				   
+				   
+				   
+	public function restApiInfo(string $kind='html'): string {
+		if ($kind === 'openapi-3.1.0-json') {
+			// Note: The script publicPages/002_rest_api/openapi_json.php will ONLY take the contents of the "paths" and "tags"
+			//       nodes and EVERYTHING else is ignored. Therefore, it is important that the version is exactly 3.1.0,
+			//       and no additional nodes besides "paths:" and "tags:" are required.
+		return file_get_contents(__DIR__.'/openapi-3.1.0.json');
+			//	return "{}";
+		} else if ($kind === 'html') {
+			throw new OIDplusException(_L('HTML Rest API support has been dropped'), null, 500);
 		} else {
 			throw new OIDplusException(_L('Invalid REST API information format'), null, 500);
 		}
-	}
-	
-	
+	}				   
+				   
+
 	
 
 
@@ -1555,141 +1523,8 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 				   
 				
 				   
-		public function tree(array &$json, ?string $ra_email=null, bool $nonjs=false, string $req_goto=''): bool {
+	public function tree(array &$json, ?string $ra_email=null, bool $nonjs=false, string $req_goto=''): bool {
 			return false;
-			/*
-			$json[] = array(
-				'id' => 'oidplus:dns',
-				'icon' => OIDplus::webpath(__DIR__,OIDplus::PATH_RELATIVE).'img/main_icon16.png',
-				'text' => _L('DNS')
-			);
-			
-			return true;
-			
-		if ($nonjs) {
-			$json[] = array(
-				'id' => 'oidplus:dns',
-				'icon' => OIDplus::webpath(__DIR__,OIDplus::PATH_RELATIVE).'img/main_icon16.png',
-				'text' => _L('System')
-			);
-
-			$objGoto = OIDplusObject::findFitting($req_goto);
-			$objGotoParent = $objGoto ? $objGoto->getParent() : null;
-			$parent = $objGotoParent ? $objGotoParent->nodeId() : '';
-
-			$objTypesChildren = array();
-			foreach (OIDplus::getEnabledObjectTypes() as $ot) {
-				$icon = $this->get_treeicon_root($ot);
-
-				$json[] = array(
-					'id' => $ot::root(),
-					'icon' => $icon,
-					'text' => $ot::objectTypeTitle()
-				);
-
-				$tmp = OIDplusObject::parse($req_goto);
-				if ($tmp && ($ot == get_class($tmp))) {
-					// TODO: Instead of just having 3 levels (parent, this and children), it would be better if we'd had a full tree of all parents
-					//       on the other hand, for giving search engines content, this is good enough
-					if (empty($parent)) {
-						$res = OIDplus::db()->query("select * from ###objects where " .
-						                            "parent = ? or " .
-						                            "id = ? ", array($req_goto, $req_goto));
-					} else {
-						$res = OIDplus::db()->query("select * from ###objects where " .
-						                            "parent = ? or " .
-						                            "id = ? or " .
-						                            "id = ? ", array($req_goto, $req_goto, $parent));
-					}
-					$res->naturalSortByField('id');
-
-					$z_used = 0;
-					$y_used = 0;
-					$x_used = 0;
-					$stufe = 0;
-					$menu_entries = array();
-					$stufen = array();
-					$max_ent = 0;
-					while ($row = $res->fetch_object()) {
-						$max_ent++;
-						if ($max_ent > 1000) { // TODO: we need to find a solution for this!!!
-							$menu_entry = array('id' => '', 'icon' => '', 'text' => _L('List truncated due to too many subordinate elements'), 'indent' => 0);
-							$menu_entries[] = $menu_entry;
-							$stufen[] = $stufe;
-							break;
-						}
-
-						$obj = OIDplusObject::parse($row->id);
-						if (!$obj) continue; // might happen if the objectType is not available/loaded
-						if (!$obj->userHasReadRights()) continue;
-						$txt = ($row->title ?? '') == '' ? '' : ' -- '.htmlentities($row->title);
-
-						if ($row->id == $parent) { $stufe=0; $z_used++; }
-						if ($row->id == $req_goto) { $stufe=1; $y_used++; }
-						if ($row->parent == $req_goto) { $stufe=2; $x_used++; }
-
-						$menu_entry = array('id' => $row->id, 'icon' => '', 'text' => $txt, 'indent' => 0);
-						$menu_entries[] = $menu_entry;
-						$stufen[] = $stufe;
-					}
-					if ($x_used) foreach ($menu_entries as $i => &$menu_entry) if ($stufen[$i] >= 2) $menu_entry['indent'] += 1;
-					if ($y_used) foreach ($menu_entries as $i => &$menu_entry) if ($stufen[$i] >= 1) $menu_entry['indent'] += 1;
-					if ($z_used) foreach ($menu_entries as $i => &$menu_entry) if ($stufen[$i] >= 0) $menu_entry['indent'] += 1;
-					$json = array_merge($json, $menu_entries);
-				}
-			}
-
-			return true;
-		} else {
-			if ($req_goto === "*") {
-				$goto_path = true; // display everything recursively
-			} else if ($req_goto !== "") {
-				$goto = $req_goto;
-				$path = array();
-				while (true) {
-					$path[] = $goto;
-					$objGoto = OIDplusObject::findFitting($goto);
-					if (!$objGoto) break;
-					$objGotoParent = $objGoto->getParent();
-					$goto = $objGotoParent ? $objGotoParent->nodeId() : '';
-					if ($goto == '') continue;
-				}
-
-				$goto_path = array_reverse($path);
-			} else {
-				$goto_path = null;
-			}
-
-			$objTypesChildren = array();
-			foreach (OIDplus::getEnabledObjectTypes() as $ot) {
-				$icon = $this->get_treeicon_root($ot);
-
-				$child = array('id' => $ot::root(),
-				               'text' => $ot::objectTypeTitle(),
-				               'state' => array("opened" => true),
-				               'icon' => $icon,
-				               'children' => OIDplus::menuUtils()->tree_populate($ot::root(), $goto_path)
-				               );
-				if ($child['icon'] && !file_exists($child['icon'])) $child['icon'] = null; // default icon (folder)
-				$objTypesChildren[] = $child;
-			}
-
-			$json[] = array(
-				'id' => "oidplus:system",
-				'text' => _L('Objects'),
-				'state' => array(
-					"opened" => true,
-					// "selected" => true)  // "selected" is buggy:
-					// 1) The select-event will not be triggered upon loading
-					// 2) The nodes directly blow cannot be opened (loading infinite time)
-				),
-				'icon' => OIDplus::webpath(__DIR__,OIDplus::PATH_RELATIVE).'img/main_icon16.png',
-				'children' => $objTypesChildren
-			);
-
-			return true;
-		}
-		*/
 	}
 
 	/**
@@ -1699,38 +1534,6 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 	public function tree_search(string $request) {
 		$ary = array();
 		return $ary;
-		/*
-		$ary = array();
-		$found_leaf = false;
-		if ($obj = OIDplusObject::parse($request)) {
-			$found_leaf = OIDplusObject::exists($request);
-			do {
-				if ($obj->userHasReadRights()) {
-					$ary[] = $obj->nodeId();
-				}
-			} while ($obj = $obj->getParent());
-			$ary = array_reverse($ary);
-		}
-		if (!$found_leaf) {
-			$alternatives = $this->getAlternativesForQuery($request);
-			foreach ($alternatives as $alternative) {
-				$ary_ = array();
-				if ($obj = OIDplusObject::parse($alternative)) {
-					if ($obj->userHasReadRights() && OIDplusObject::exists($alternative)) {
-						do {
-							$ary_[] = $obj->nodeId();
-						} while ($obj = $obj->getParent());
-						$ary_ = array_reverse($ary_);
-					}
-				}
-				if (!empty($ary_)) {
-					$ary = $ary_;
-					break;
-				}
-			}
-		}
-		return $ary;
-		*/
 	}			   
 				   
 				   
