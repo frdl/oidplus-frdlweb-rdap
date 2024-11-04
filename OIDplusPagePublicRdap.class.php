@@ -900,7 +900,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 
 		
 	public function getCacheKey($type, $name){
-		return 'rdap.2sdf675-'.strlen($type).'.'.self::CACHE_VERSION.'-'. __FILE__ .'-'
+		return 'rdap.2sd678f675-'.strlen($type).'.'.self::CACHE_VERSION.'-'. __FILE__ .'-'
 			.sha1($name).'l'.strlen($name).'-'.sha1($type);
 	}		
 				   
@@ -945,7 +945,7 @@ $hint = 'Fallback Look-Up Server for foreign identifiers. Can be e.g.: "https://
 						 $resultSub=[
 					        'registryName' => $registryName,
 					     //  'description' => $description,
-					       'url' => $url,
+					       'url' => $url.'rdap/',
 					      'id'=>$sub,
 					      'oid'=>  str_replace('oid:', '', $instanceInfo->oidip->objectSection->{'canonical-identifier'}),
 						  'available'=>$exists,
